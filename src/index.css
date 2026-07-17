@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  /* SDING brand tokens (베타 기획서 8. 비주얼 가이드) */
+  --color-brand: #ff5416;
+  --color-brand-deep: #e8440a;
+  --color-tint: #fff1e8;
+  --color-ink: #1f1f1f;
+  --color-sub: #6e6e6e;
+  --color-faint: #8a8a8a;
+  --color-line: #ececec;
+  --color-page: #efeff1;
+  --color-field: #f4f4f6;
+  --color-dark: #0e0e10;
+  --color-dark-card: #1a1a1e;
+  --color-success: #22c55e;
+  --color-consult: #f5a623;
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-size-adjust: 100%;
+}
+
+button {
+  cursor: pointer;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
