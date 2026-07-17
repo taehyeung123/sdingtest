@@ -1,7 +1,5 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import type { Variants } from "framer-motion";
 import {
   Bell,
   CalendarHeart,
@@ -51,18 +49,11 @@ const AI_BANNERS = [
   },
 ] as const;
 
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
-};
-
-const rise: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
-};
+// 섹션 순차 등장 딜레이 (CSS 애니메이션 — rAF가 멈춰도 콘텐츠는 항상 보임)
+const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 
 export default function Dashboard() {
-  const { items, summary, showToast } = useApp();
+  const { items, summary, showToast, resetAll } = useApp();
 
   const dday = formatDday(daysUntilWedding());
   const percent = progressPercent(summary);
@@ -85,9 +76,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-dvh bg-white pb-24">
-      <motion.div variants={container} initial="hidden" animate="show">
+      <div>
         {/* 1. 헤더 */}
-        <motion.header variants={rise} className="px-5 pt-4">
+        <header className="anim-rise px-5 pt-4" style={stagger(0)}>
           <div className="flex items-center justify-between">
             <Logo className="h-[20px]" />
             <button
@@ -102,10 +93,10 @@ export default function Dashboard() {
           <h1 className="mt-3 text-[20px] font-extrabold">
             {USER_NAME}님의 웨딩 플래너
           </h1>
-        </motion.header>
+        </header>
 
         {/* 2. D-day 배너 */}
-        <motion.section variants={rise} className="mt-4 px-5">
+        <section className="anim-rise mt-4 px-5" style={stagger(1)}>
           <div className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white">
             <CalendarHeart
               size={96}
@@ -120,10 +111,10 @@ export default function Dashboard() {
               {formatWeddingDate()}
             </p>
           </div>
-        </motion.section>
+        </section>
 
         {/* 3. 진행률 요약 */}
-        <motion.section variants={rise} className="mt-5 px-5">
+        <section className="anim-rise mt-5 px-5" style={stagger(2)}>
           <div className="flex items-center gap-5 rounded-2xl border border-line bg-white p-4">
             <ProgressRing
               value={
@@ -170,10 +161,10 @@ export default function Dashboard() {
               })}
             </div>
           </div>
-        </motion.section>
+        </section>
 
         {/* 4. AI 배너 캐러셀 */}
-        <motion.section variants={rise} className="mt-5">
+        <section className="anim-rise mt-5" style={stagger(3)}>
           <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5">
             {AI_BANNERS.map((banner) => (
               <Link
@@ -202,10 +193,10 @@ export default function Dashboard() {
               </Link>
             ))}
           </div>
-        </motion.section>
+        </section>
 
         {/* 5. 다음 할 일 */}
-        <motion.section variants={rise} className="mt-6 px-5">
+        <section className="anim-rise mt-6 px-5" style={stagger(4)}>
           <div className="flex items-center justify-between">
             <h2 className="text-[16px] font-bold">다음 할 일</h2>
             <Link
@@ -259,10 +250,10 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </motion.section>
+        </section>
 
         {/* 6. AI 플래너에게 물어보기 */}
-        <motion.section variants={rise} className="mt-6 px-5">
+        <section className="anim-rise mt-6 px-5" style={stagger(5)}>
           <Link
             to="/chat"
             className="flex items-center gap-3 rounded-2xl bg-brand p-4 text-white transition active:scale-[0.98]"
@@ -280,8 +271,23 @@ export default function Dashboard() {
             </span>
             <ChevronRight size={20} className="shrink-0 text-white/90" />
           </Link>
-        </motion.section>
-      </motion.div>
+        </section>
+
+        {/* 베타 유틸: 저장된 데이터 초기화 */}
+        <section className="anim-rise mt-8 px-5 text-center" style={stagger(6)}>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("체크리스트와 채팅 기록을 처음 상태로 되돌릴까요?")) {
+                resetAll();
+              }
+            }}
+            className="text-[12px] text-faint underline underline-offset-2"
+          >
+            베타 데이터 초기화
+          </button>
+        </section>
+      </div>
 
       <BottomNav />
     </div>

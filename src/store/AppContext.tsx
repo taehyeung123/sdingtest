@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -15,6 +16,67 @@ import type {
 } from "../types";
 import { INITIAL_CHECKLIST } from "../data/checklist";
 import { progressSummary } from "../lib/wedding";
+
+// ---- localStorage 영속화 (베타: 실서버 저장 없음) ----------------------------
+// blob: URL(사진 로컬 미리보기)은 새로고침 후 무효라 저장 시 제거한다.
+
+const STORAGE_KEY = "sding-beta-state-v1";
+
+interface PersistedState {
+  items: ChecklistItem[];
+  messages: ChatMessage[];
+  greeted: boolean;
+}
+
+function dropBlobUrl(url?: string): string | undefined {
+  return url && url.startsWith("blob:") ? undefined : url;
+}
+
+function sanitizeItems(items: ChecklistItem[]): ChecklistItem[] {
+  return items.map((it) =>
+    it.vendor
+      ? {
+          ...it,
+          vendor: {
+            ...it.vendor,
+            productPhotoUrl: dropBlobUrl(it.vendor.productPhotoUrl),
+            contractPhotoUrl: dropBlobUrl(it.vendor.contractPhotoUrl),
+          },
+        }
+      : it,
+  );
+}
+
+function sanitizeMessages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter(
+    (m) => !(m.synthesis && m.synthesis.imageUrl.startsWith("blob:")),
+  );
+}
+
+function loadPersisted(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedState>;
+    // 체크리스트 데이터 모델이 바뀌면(항목 수 불일치) 저장본을 버리고 초기 상태로
+    if (
+      !Array.isArray(parsed.items) ||
+      parsed.items.length !== INITIAL_CHECKLIST.length
+    ) {
+      return null;
+    }
+    return {
+      items: sanitizeItems(parsed.items),
+      messages: sanitizeMessages(
+        Array.isArray(parsed.messages) ? parsed.messages : [],
+      ),
+      greeted: Boolean(parsed.greeted),
+    };
+  } catch {
+    return null;
+  }
+}
+// -----------------------------------------------------------------------------
 
 interface AppContextValue {
   items: ChecklistItem[];
@@ -32,16 +94,41 @@ interface AppContextValue {
   appendMessages: (msgs: ChatMessage[]) => void;
   markGreeted: () => void;
   showToast: (message: string) => void;
+  /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
+  resetAll: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<ChecklistItem[]>(INITIAL_CHECKLIST);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [greeted, setGreeted] = useState(false);
+  const [items, setItems] = useState<ChecklistItem[]>(
+    () => loadPersisted()?.items ?? INITIAL_CHECKLIST,
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => loadPersisted()?.messages ?? [],
+  );
+  const [greeted, setGreeted] = useState(
+    () => loadPersisted()?.greeted ?? false,
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 상태 변경을 디바운스해서 localStorage에 저장
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const state: PersistedState = {
+          items: sanitizeItems(items),
+          messages: sanitizeMessages(messages),
+          greeted,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {
+        // 저장 실패(용량 초과 등)는 베타에서 무시
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [items, messages, greeted]);
 
   const toggleItem = useCallback((id: string) => {
     setItems((prev) =>
@@ -96,6 +183,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toastTimer.current = setTimeout(() => setToastMessage(null), 2200);
   }, []);
 
+  const resetAll = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // 무시
+    }
+    setItems(INITIAL_CHECKLIST);
+    setMessages([]);
+    setGreeted(false);
+    showToast("베타 데이터를 초기 상태로 되돌렸어요");
+  }, [showToast]);
+
   const summary = useMemo(() => progressSummary(items), [items]);
 
   const value = useMemo<AppContextValue>(
@@ -112,6 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       appendMessages,
       markGreeted,
       showToast,
+      resetAll,
     }),
     [
       items,
@@ -126,6 +226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       appendMessages,
       markGreeted,
       showToast,
+      resetAll,
     ],
   );
 

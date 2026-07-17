@@ -35,7 +35,9 @@ React 19 + Vite 7 + TypeScript + Tailwind CSS v4 + react-router-dom v7 + lucide-
 - **AI 응답**: `src/lib/chatEngine.ts`의 키워드 매칭 스크립트 (자유 대화 아님)
 - **이미지 합성**: 미리 준비된 정적 이미지에 스타일별 CSS 필터를 적용해 변형 노출
 - **사진 업로드**: `URL.createObjectURL` 로컬 미리보기만 (서버 저장 없음)
-- **상태**: 메모리 보관 — 새로고침 시 초기화 (베타 스펙상 허용)
+- **상태**: localStorage 영속화 (`sding-beta-state-v1`) — 새로고침해도 체크리스트·채팅이 유지됩니다.
+  사진 미리보기(blob URL)는 브라우저 세션 한정이라 저장 시 제외됩니다.
+  대시보드 맨 아래 "베타 데이터 초기화" 버튼으로 처음 상태로 되돌릴 수 있습니다.
 
 ## 참고
 

@@ -46,3 +46,39 @@ button {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+/* 페이지 진입용 등장 애니메이션.
+   기본 상태는 "항상 보임"이고, 문서가 보이는 상태로 부팅됐을 때만
+   (main.tsx가 html[data-anim]을 세팅) 애니메이션을 얹는다 —
+   백그라운드 탭에서는 CSS/JS 애니메이션 타임라인이 멈춰
+   opacity 0에 갇힌 흰 화면이 되는 문제 방지. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+html[data-anim] .anim-rise {
+  animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html[data-anim] .anim-fade {
+  animation: fade-in 0.25s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-anim] .anim-rise,
+  html[data-anim] .anim-fade {
+    animation: none;
+  }
+}

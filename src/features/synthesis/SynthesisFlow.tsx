@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Check, ImagePlus, Sparkles } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import { useApp } from "../../store/AppContext";
@@ -178,16 +178,8 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
     <div className="min-h-dvh bg-dark text-white">
       <PageHeader title={config.title} dark onBack={() => navigate("/")} />
 
-      <AnimatePresence mode="wait">
-        {step === "select" && (
-          <motion.main
-            key="select"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="px-5 pt-5 pb-32"
-          >
+      {step === "select" && (
+          <main key="select" className="anim-fade px-5 pt-5 pb-32">
             <h2 className="text-[15px] font-semibold">
               합성에 사용할 사진을 골라주세요
             </h2>
@@ -244,16 +236,8 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
               </label>
             </div>
 
-            <AnimatePresence>
-              {photoId !== null && (
-                <motion.section
-                  key="styles"
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="mt-8"
-                >
+            {photoId !== null && (
+                <section key="styles" className="anim-rise mt-8">
                   <h3 className="text-[16px] font-bold">
                     {config.styleSectionTitle}
                   </h3>
@@ -273,20 +257,15 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
                       </button>
                     ))}
                   </div>
-                </motion.section>
+                </section>
               )}
-            </AnimatePresence>
-          </motion.main>
+          </main>
         )}
 
-        {step === "loading" && (
-          <motion.main
+      {step === "loading" && (
+          <main
             key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex min-h-[calc(100dvh-52px)] flex-col items-center justify-center px-5 pb-16"
+            className="anim-fade flex min-h-[calc(100dvh-52px)] flex-col items-center justify-center px-5 pb-16"
           >
             <div className="relative flex h-20 w-20 items-center justify-center">
               <motion.span
@@ -304,30 +283,17 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
             </div>
             <p className="mt-6 text-[16px] font-bold">AI가 합성 중이에요…</p>
             <div className="mt-2 h-5">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={phraseIdx}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.25 }}
-                  className="text-[13px] text-white/55"
-                >
-                  {config.loadingPhrases[phraseIdx]}
-                </motion.p>
-              </AnimatePresence>
+              <p key={phraseIdx} className="anim-fade text-[13px] text-white/55">
+                {config.loadingPhrases[phraseIdx]}
+              </p>
             </div>
-          </motion.main>
+          </main>
         )}
 
-        {step === "result" && (
-          <motion.main
+      {step === "result" && (
+          <main
             key="result"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
-            className="px-5 pt-4 pb-[max(env(safe-area-inset-bottom),24px)]"
+            className="anim-rise px-5 pt-4 pb-[max(env(safe-area-inset-bottom),24px)]"
           >
             <div className="relative aspect-[3/4] overflow-hidden rounded-[20px] bg-dark-card">
               <img
@@ -401,9 +367,8 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
                 {config.vendorLinkLabel}
               </button>
             </div>
-          </motion.main>
+          </main>
         )}
-      </AnimatePresence>
 
       {step === "select" && (
         <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center">
