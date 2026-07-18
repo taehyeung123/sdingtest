@@ -1,11 +1,13 @@
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Bell,
   CalendarHeart,
   ChevronRight,
   ClipboardCheck,
   Heart,
+  ListChecks,
+  MessageCircle,
   Sparkles,
 } from "lucide-react";
 import Logo from "../components/Logo";
@@ -55,7 +57,15 @@ const AI_BANNERS = [
 // 섹션 순차 등장 딜레이 (CSS 애니메이션 — rAF가 멈춰도 콘텐츠는 항상 보임)
 const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 
+// AI 플래너 카드의 추천 질문 — 탭하면 채팅방에서 바로 전송된다
+const SUGGESTED_QUESTIONS = [
+  "지금 뭐 해야 해?",
+  "웨딩홀 추천해줘",
+  "스드메가 뭐예요?",
+] as const;
+
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { items, summary, showToast, resetAll } = useApp();
 
   const dday = formatDday(daysUntilWedding());
@@ -121,9 +131,23 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 3. 진행률 요약 */}
+        {/* 3. 진행률 요약 = 웨딩 체크리스트 진입 카드 (카드 전체 탭 가능) */}
         <section className="anim-rise mt-5 px-5" style={stagger(2)}>
-          <div className="flex items-center gap-5 rounded-2xl border border-line bg-white p-4">
+          <Link
+            to="/checklist"
+            className="block rounded-2xl border border-line bg-white p-4 transition active:scale-[0.99] active:bg-black/[0.02]"
+          >
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <ListChecks size={16} className="text-brand" />
+                <span className="text-[15px] font-bold">웨딩 체크리스트</span>
+              </span>
+              <span className="flex items-center gap-0.5 text-[13px] font-semibold text-brand">
+                전체보기
+                <ChevronRight size={15} />
+              </span>
+            </div>
+            <div className="mt-3.5 flex items-center gap-5">
             <ProgressRing
               value={
                 summary.totalCount > 0
@@ -168,7 +192,8 @@ export default function Dashboard() {
                 );
               })}
             </div>
-          </div>
+            </div>
+          </Link>
         </section>
 
         {/* 4. AI 배너 캐러셀 */}
@@ -216,9 +241,9 @@ export default function Dashboard() {
             <h2 className="text-[16px] font-bold">다음 할 일</h2>
             <Link
               to="/checklist"
-              className="flex items-center gap-0.5 text-[13px] text-sub"
+              className="flex items-center gap-0.5 text-[13px] font-medium text-sub"
             >
-              전체보기
+              체크리스트 전체보기
               <ChevronRight size={14} />
             </Link>
           </div>
@@ -267,25 +292,43 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 6. AI 플래너에게 물어보기 */}
+        {/* 6. AI 플래너 허브 카드 — 추천 질문 탭 시 채팅방에서 바로 전송 */}
         <section className="anim-rise mt-6 px-5" style={stagger(5)}>
-          <Link
-            to="/chat"
-            className="flex items-center gap-3 rounded-2xl bg-brand p-4 text-white transition active:scale-[0.98]"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20">
-              <Sparkles size={20} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-bold">
-                궁금한 게 있으신가요?
+          <div className="rounded-2xl bg-tint p-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                <Sparkles size={20} />
               </span>
-              <span className="mt-0.5 block text-[12px] text-white/85">
-                AI 플래너와 대화해보세요
-              </span>
-            </span>
-            <ChevronRight size={20} className="shrink-0 text-white/90" />
-          </Link>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-bold">
+                  AI 웨딩플래너에게 물어보세요
+                </p>
+                <p className="mt-0.5 text-[12px] text-sub">
+                  업체 추천부터 일정 관리까지, 대화로 한 번에
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {SUGGESTED_QUESTIONS.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => navigate("/chat", { state: { ask: q } })}
+                  className="rounded-full border border-brand/25 bg-white px-3 py-1.5 text-[12px] font-medium transition active:bg-brand/10"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/chat")}
+              className="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-brand text-[14px] font-bold text-white transition active:scale-[0.98]"
+            >
+              <MessageCircle size={16} strokeWidth={2.2} />
+              대화 시작하기
+            </button>
+          </div>
         </section>
 
         {/* 베타 유틸: 저장된 데이터 초기화 */}

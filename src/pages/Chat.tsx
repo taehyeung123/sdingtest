@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
   Building2,
   ChevronLeft,
+  ChevronRight,
   ClipboardCheck,
   Home,
   ListChecks,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import type { ChatMessage } from "../types";
 import { useApp } from "../store/AppContext";
+import { nextTodos } from "../lib/wedding";
 import { formatTime, uid } from "../lib/utils";
 import { getAiResponses, greetingMessages } from "../lib/chatEngine";
 import VendorCard from "../components/VendorCard";
@@ -33,15 +35,18 @@ const MENU_ITEMS = [
   { label: "대시보드로 가기", Icon: Home, to: "/" },
 ] as const;
 
-// 채팅방 온보딩 바로가기 — AI 기능·체크리스트로 바로 진입하는 허브
-const ONBOARDING_SHORTCUTS = [
-  { label: "웨딩\n체크리스트", Icon: ListChecks, to: "/checklist" },
-  { label: "AI 드레스\n합성", Icon: Sparkles, to: "/ai/dress" },
-  { label: "AI 웨딩홀\n합성", Icon: Building2, to: "/ai/hall" },
+// 채팅방 온보딩 — 체크리스트를 대표 행(진행률·다음 할 일 포함)으로 보여주고
+// AI 도구 2종을 그 아래 배치하는 허브
+const ONBOARDING_TOOLS = [
+  { label: "AI 드레스 합성", Icon: Sparkles, to: "/ai/dress" },
+  { label: "AI 웨딩홀 합성", Icon: Building2, to: "/ai/hall" },
 ] as const;
 
 function OnboardingPanel() {
   const navigate = useNavigate();
+  const { items, summary } = useApp();
+  const next = nextTodos(items, 1)[0];
+
   return (
     <div className="anim-rise mb-2 rounded-2xl border border-line bg-white p-4">
       <div className="flex items-center gap-1.5">
@@ -50,20 +55,35 @@ function OnboardingPanel() {
           AI 플래너가 이런 걸 도와드릴 수 있어요
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        {ONBOARDING_SHORTCUTS.map(({ label, Icon, to }) => (
+
+      <button
+        type="button"
+        onClick={() => navigate("/checklist")}
+        className="mt-3 flex w-full items-center gap-3 rounded-xl bg-tint p-3 text-left transition active:bg-brand/15"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+          <ListChecks size={18} strokeWidth={2} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-bold">웨딩 체크리스트</span>
+          <span className="mt-0.5 block truncate text-[11px] text-sub">
+            {summary.doneCount}/{summary.totalCount} 완료
+            {next ? ` · 다음: ${next.title}` : " · 모든 준비 완료!"}
+          </span>
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-brand" />
+      </button>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {ONBOARDING_TOOLS.map(({ label, Icon, to }) => (
           <button
             key={to}
             type="button"
             onClick={() => navigate(to)}
-            className="flex flex-col items-center gap-1.5 rounded-xl bg-field/70 py-3 transition active:bg-tint"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-field/70 py-2.5 text-[12px] font-semibold transition active:bg-tint"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tint text-brand">
-              <Icon size={17} strokeWidth={1.9} />
-            </span>
-            <span className="whitespace-pre-line text-center text-[11px] font-semibold leading-tight">
-              {label}
-            </span>
+            <Icon size={15} className="text-brand" />
+            {label}
           </button>
         ))}
       </div>
@@ -237,6 +257,7 @@ function MessageRow({ msg, showChips, onChip }: RowProps) {
 
 export default function Chat() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { items, messages, greeted, appendMessages, markGreeted } = useApp();
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -299,6 +320,20 @@ export default function Chat() {
       });
     });
   };
+
+  // 대시보드 추천 질문 칩으로 진입한 경우: (첫 진입이면 인사 후) 질문 자동 전송.
+  // state 초기화는 전송 시점에 해야 StrictMode 이중 마운트에서도 질문이 유실되지 않는다.
+  useEffect(() => {
+    const ask = (location.state as { ask?: string } | null)?.ask;
+    if (!ask) return;
+    const delay = greetedAtMount.current ? 300 : 1400;
+    const t = window.setTimeout(() => {
+      navigate("/chat", { replace: true, state: null });
+      send(ask);
+    }, delay);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const canSend = input.trim().length > 0 && !busy;
 
