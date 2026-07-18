@@ -38,7 +38,11 @@ React 19 + Vite 7 + TypeScript + Tailwind CSS v4 + react-router-dom v7 + lucide-
 ## Mock 처리 방식
 
 - **AI 응답**: `src/lib/chatEngine.ts`의 키워드 매칭 스크립트 (자유 대화 아님)
-- **이미지 합성**: 미리 준비된 정적 이미지에 스타일별 CSS 필터를 적용해 변형 노출
+- **이미지 합성**: 사진 → 업체 선택 → 업체 등록 상품(드레스/홀) 선택 → 합성.
+  결과는 미리 준비된 정적 이미지에 상품별 CSS 필터를 적용해 변형 노출
+- **포인트/구독**: 합성 1회 500P (가입 축하 3,000P 지급), 부족하면
+  "스딩 AI 패스" 구독(월 9,900원 표기, mock — 실제 결제 없음) 유도.
+  상품 데이터는 `src/data/products.ts`, 비용 상수 `SYNTHESIS_COST`
 - **사진 업로드**: `URL.createObjectURL` 로컬 미리보기만 (서버 저장 없음)
 - **상태**: localStorage 영속화 (`sding-beta-state-v1`) — 새로고침해도 체크리스트·채팅이 유지됩니다.
   사진 미리보기(blob URL)는 브라우저 세션 한정이라 저장 시 제외됩니다.

@@ -98,3 +98,14 @@ export interface VendorChatMessage {
   text: string;
   timestamp: string;
 }
+
+// 업체에 등록된 상품 (AI 합성에서 선택하는 드레스/웨딩홀, mock)
+export interface VendorProduct {
+  id: string;
+  vendorId: string; // VendorSummary.id
+  name: string;
+  imageUrl: string;
+  /** mock 변형용 CSS filter — 실제 합성 대신 톤을 달리해 노출 */
+  filter?: string;
+  priceLabel?: string;
+}

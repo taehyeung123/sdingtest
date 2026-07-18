@@ -23,11 +23,16 @@ import { progressSummary } from "../lib/wedding";
 
 const STORAGE_KEY = "sding-beta-state-v1";
 
+// 가입 축하 포인트 (mock) — AI 합성에 사용
+export const SIGNUP_POINTS = 3000;
+
 interface PersistedState {
   items: ChecklistItem[];
   messages: ChatMessage[];
   greeted: boolean;
   vendorChats: Record<string, VendorChatMessage[]>;
+  points: number;
+  aiPass: boolean;
 }
 
 function dropBlobUrl(url?: string): string | undefined {
@@ -80,6 +85,11 @@ function loadPersisted(): PersistedState | null {
       ),
       greeted: Boolean(parsed.greeted),
       vendorChats,
+      points:
+        typeof parsed.points === "number" && parsed.points >= 0
+          ? parsed.points
+          : SIGNUP_POINTS,
+      aiPass: Boolean(parsed.aiPass),
     };
   } catch {
     return null;
@@ -106,6 +116,13 @@ interface AppContextValue {
   /** 업체 채팅 — 체크리스트 항목 id별 대화 기록 */
   vendorChats: Record<string, VendorChatMessage[]>;
   appendVendorMessages: (itemId: string, msgs: VendorChatMessage[]) => void;
+  /** AI 합성용 포인트 (가입 축하 3,000P 지급, mock) */
+  points: number;
+  /** 스딩 AI 패스 구독 여부 (mock — 구독 중이면 합성 무제한) */
+  aiPass: boolean;
+  /** 포인트 차감 — 잔액 부족이면 false 반환하고 차감하지 않음 */
+  spendPoints: (amount: number) => boolean;
+  activateAiPass: () => void;
   /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
   resetAll: () => void;
 }
@@ -125,6 +142,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [vendorChats, setVendorChats] = useState<
     Record<string, VendorChatMessage[]>
   >(() => loadPersisted()?.vendorChats ?? {});
+  const [points, setPoints] = useState<number>(
+    () => loadPersisted()?.points ?? SIGNUP_POINTS,
+  );
+  const [aiPass, setAiPass] = useState<boolean>(
+    () => loadPersisted()?.aiPass ?? false,
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,6 +160,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           messages: sanitizeMessages(messages),
           greeted,
           vendorChats,
+          points,
+          aiPass,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
@@ -144,7 +169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }, 150);
     return () => clearTimeout(timer);
-  }, [items, messages, greeted, vendorChats]);
+  }, [items, messages, greeted, vendorChats, points, aiPass]);
 
   const toggleItem = useCallback((id: string) => {
     setItems((prev) =>
@@ -203,6 +228,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const spendPoints = useCallback(
+    (amount: number) => {
+      if (points < amount) return false;
+      setPoints((prev) => prev - amount);
+      return true;
+    },
+    [points],
+  );
+
+  const activateAiPass = useCallback(() => setAiPass(true), []);
+
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -219,6 +255,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMessages([]);
     setGreeted(false);
     setVendorChats({});
+    setPoints(SIGNUP_POINTS);
+    setAiPass(false);
     showToast("베타 데이터를 초기 상태로 되돌렸어요");
   }, [showToast]);
 
@@ -240,6 +278,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast,
       vendorChats,
       appendVendorMessages,
+      points,
+      aiPass,
+      spendPoints,
+      activateAiPass,
       resetAll,
     }),
     [
@@ -257,6 +299,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast,
       vendorChats,
       appendVendorMessages,
+      points,
+      aiPass,
+      spendPoints,
+      activateAiPass,
       resetAll,
     ],
   );

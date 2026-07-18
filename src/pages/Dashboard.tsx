@@ -1,10 +1,12 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  BadgeCheck,
   Bell,
   CalendarHeart,
   ChevronRight,
   ClipboardCheck,
+  Coins,
   Heart,
   ListChecks,
   MessageCircle,
@@ -66,7 +68,7 @@ const SUGGESTED_QUESTIONS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { items, summary, showToast, resetAll } = useApp();
+  const { items, summary, showToast, resetAll, points, aiPass } = useApp();
 
   const dday = formatDday(daysUntilWedding());
   const percent = progressPercent(summary);
@@ -94,14 +96,30 @@ export default function Dashboard() {
         <header className="anim-rise px-5 pt-4" style={stagger(0)}>
           <div className="flex items-center justify-between">
             <Logo className="h-[20px]" />
-            <button
-              type="button"
-              aria-label="알림"
-              onClick={() => showToast("알림은 베타에서 준비 중이에요")}
-              className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-ink transition active:scale-95"
-            >
-              <Bell size={21} strokeWidth={1.9} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  showToast(
+                    aiPass
+                      ? "AI 패스 구독 중 — AI 합성이 무제한이에요"
+                      : "AI 합성에 쓰는 포인트예요. 가입 축하로 3,000P를 드렸어요",
+                  )
+                }
+                className="flex items-center gap-1 rounded-full bg-tint px-2.5 py-1.5 text-[12px] font-bold text-brand transition active:scale-95"
+              >
+                {aiPass ? <BadgeCheck size={13} /> : <Coins size={13} />}
+                {aiPass ? "AI 패스" : `${points.toLocaleString()}P`}
+              </button>
+              <button
+                type="button"
+                aria-label="알림"
+                onClick={() => showToast("알림은 베타에서 준비 중이에요")}
+                className="-mr-2 flex h-10 w-10 items-center justify-center rounded-full text-ink transition active:scale-95"
+              >
+                <Bell size={21} strokeWidth={1.9} />
+              </button>
+            </div>
           </div>
           <h1 className="mt-3 text-[20px] font-extrabold">
             {USER_NAME}님의 웨딩 플래너
