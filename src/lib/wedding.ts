@@ -6,6 +6,7 @@ import type {
 
 // mock 사용자 프로필
 export const USER_NAME = "수민";
+export const PARTNER_NAME = "도윤"; // mock 예비 배우자
 export const WEDDING_DATE = "2027-01-16"; // mock 예식일 (토요일)
 
 export const GROUP_ORDER: ChecklistGroup[] = [

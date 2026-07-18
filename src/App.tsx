@@ -7,6 +7,8 @@ import Checklist from "./pages/Checklist";
 import VendorForm from "./pages/VendorForm";
 import VendorBrowse from "./pages/VendorBrowse";
 import Chat from "./pages/Chat";
+import VendorChatList from "./pages/VendorChatList";
+import VendorChatRoom from "./pages/VendorChatRoom";
 import DressSynthesis from "./pages/DressSynthesis";
 import HallSynthesis from "./pages/HallSynthesis";
 
@@ -27,6 +29,8 @@ export default function App() {
           <Route path="/checklist/:itemId/register" element={<VendorForm />} />
           <Route path="/vendors/:category" element={<VendorBrowse />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/vendor-chat" element={<VendorChatList />} />
+          <Route path="/vendor-chat/:itemId" element={<VendorChatRoom />} />
           <Route path="/ai/dress" element={<DressSynthesis />} />
           <Route path="/ai/hall" element={<HallSynthesis />} />
           <Route path="*" element={<Dashboard />} />

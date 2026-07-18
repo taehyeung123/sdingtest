@@ -13,6 +13,7 @@ import type {
   ChecklistItem,
   ProgressSummary,
   RegisteredVendor,
+  VendorChatMessage,
 } from "../types";
 import { INITIAL_CHECKLIST } from "../data/checklist";
 import { progressSummary } from "../lib/wedding";
@@ -26,6 +27,7 @@ interface PersistedState {
   items: ChecklistItem[];
   messages: ChatMessage[];
   greeted: boolean;
+  vendorChats: Record<string, VendorChatMessage[]>;
 }
 
 function dropBlobUrl(url?: string): string | undefined {
@@ -65,12 +67,19 @@ function loadPersisted(): PersistedState | null {
     ) {
       return null;
     }
+    const vendorChats: Record<string, VendorChatMessage[]> = {};
+    if (parsed.vendorChats && typeof parsed.vendorChats === "object") {
+      for (const [key, msgs] of Object.entries(parsed.vendorChats)) {
+        if (Array.isArray(msgs)) vendorChats[key] = msgs;
+      }
+    }
     return {
       items: sanitizeItems(parsed.items),
       messages: sanitizeMessages(
         Array.isArray(parsed.messages) ? parsed.messages : [],
       ),
       greeted: Boolean(parsed.greeted),
+      vendorChats,
     };
   } catch {
     return null;
@@ -94,6 +103,9 @@ interface AppContextValue {
   appendMessages: (msgs: ChatMessage[]) => void;
   markGreeted: () => void;
   showToast: (message: string) => void;
+  /** 업체 채팅 — 체크리스트 항목 id별 대화 기록 */
+  vendorChats: Record<string, VendorChatMessage[]>;
+  appendVendorMessages: (itemId: string, msgs: VendorChatMessage[]) => void;
   /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
   resetAll: () => void;
 }
@@ -110,6 +122,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [greeted, setGreeted] = useState(
     () => loadPersisted()?.greeted ?? false,
   );
+  const [vendorChats, setVendorChats] = useState<
+    Record<string, VendorChatMessage[]>
+  >(() => loadPersisted()?.vendorChats ?? {});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -121,6 +136,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           items: sanitizeItems(items),
           messages: sanitizeMessages(messages),
           greeted,
+          vendorChats,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
@@ -128,7 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }, 150);
     return () => clearTimeout(timer);
-  }, [items, messages, greeted]);
+  }, [items, messages, greeted, vendorChats]);
 
   const toggleItem = useCallback((id: string) => {
     setItems((prev) =>
@@ -177,6 +193,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const markGreeted = useCallback(() => setGreeted(true), []);
 
+  const appendVendorMessages = useCallback(
+    (itemId: string, msgs: VendorChatMessage[]) => {
+      setVendorChats((prev) => ({
+        ...prev,
+        [itemId]: [...(prev[itemId] ?? []), ...msgs],
+      }));
+    },
+    [],
+  );
+
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -192,6 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setItems(INITIAL_CHECKLIST);
     setMessages([]);
     setGreeted(false);
+    setVendorChats({});
     showToast("베타 데이터를 초기 상태로 되돌렸어요");
   }, [showToast]);
 
@@ -211,6 +238,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       appendMessages,
       markGreeted,
       showToast,
+      vendorChats,
+      appendVendorMessages,
       resetAll,
     }),
     [
@@ -226,6 +255,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       appendMessages,
       markGreeted,
       showToast,
+      vendorChats,
+      appendVendorMessages,
       resetAll,
     ],
   );

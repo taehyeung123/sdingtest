@@ -90,3 +90,11 @@ export interface ChatMessage {
   synthesis?: { imageUrl: string; label: string };
   timestamp: string;
 }
+
+// 업체 채팅 메시지 (플로팅 채팅 버튼 → 계약 업체와 1:1 대화, mock)
+export interface VendorChatMessage {
+  id: string;
+  from: "user" | "vendor";
+  text: string;
+  timestamp: string;
+}

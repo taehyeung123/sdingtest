@@ -5,15 +5,18 @@ import {
   CalendarHeart,
   ChevronRight,
   ClipboardCheck,
+  Heart,
   Sparkles,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import BottomNav from "../components/BottomNav";
+import FloatingChat from "../components/FloatingChat";
 import ProgressRing from "../components/ProgressRing";
 import StatusBadge from "../components/StatusBadge";
 import { categoryIcon } from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import {
+  PARTNER_NAME,
   USER_NAME,
   daysUntilWedding,
   formatDday,
@@ -103,7 +106,12 @@ export default function Dashboard() {
               strokeWidth={1.4}
               className="absolute -right-4 -bottom-7 text-white/[0.07]"
             />
-            <p className="text-[13px] font-medium text-white/70">결혼까지</p>
+            <p className="flex items-center gap-1.5 text-[13px] font-semibold text-white/85">
+              {USER_NAME}
+              <Heart size={13} className="text-brand" fill="currentColor" />
+              {PARTNER_NAME}
+              <span className="font-medium text-white/50">· 결혼까지</span>
+            </p>
             <p className="mt-1 text-[34px] font-extrabold leading-none tracking-tight text-brand">
               {dday}
             </p>
@@ -165,6 +173,13 @@ export default function Dashboard() {
 
         {/* 4. AI 배너 캐러셀 */}
         <section className="anim-rise mt-5" style={stagger(3)}>
+          <div className="mb-3 flex items-center gap-1.5 px-5">
+            <Sparkles size={16} className="text-brand" />
+            <h2 className="text-[16px] font-bold">AI로 미리 보는 우리 결혼식</h2>
+            <span className="rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
+              BETA
+            </span>
+          </div>
           <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-5">
             {AI_BANNERS.map((banner) => (
               <Link
@@ -289,6 +304,7 @@ export default function Dashboard() {
         </section>
       </div>
 
+      <FloatingChat offsetClass="bottom-24" />
       <BottomNav />
     </div>
   );

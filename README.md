@@ -22,9 +22,14 @@ npm run dev
 | `/checklist` | 웨딩 체크리스트 (31개 항목 · 8개 그룹) + 업체 처리 바텀시트 |
 | `/checklist/:itemId/register` | 업체 등록 폼 (상담중/계약완료, 사진 업로드 mock) |
 | `/vendors/:category` | 업체 보러가기 (카테고리별 mock 업체 리스트, 14종) |
-| `/chat` | AI 웨딩플래너 채팅방 (키워드 매칭 mock 엔진) |
+| `/chat` | AI 웨딩플래너 채팅방 (키워드 매칭 mock 엔진, 온보딩 바로가기 패널) |
+| `/vendor-chat` | 업체 채팅 리스트 (등록한 업체만 노출) |
+| `/vendor-chat/:itemId` | 업체 1:1 채팅방 (mock 자동응답) |
 | `/ai/dress` | AI 드레스 합성 (mock) |
 | `/ai/hall` | AI 웨딩홀 합성 (mock) |
+
+대시보드·체크리스트 우하단의 **플로팅 채팅 버튼**으로 AI 플래너 대화 / 업체 채팅을
+선택해 진입할 수 있습니다.
 
 ## 기술 스택
 

@@ -11,6 +11,7 @@ import {
   MoreVertical,
   Plus,
   Sparkles,
+  Store,
 } from "lucide-react";
 import type { ChatMessage } from "../types";
 import { useApp } from "../store/AppContext";
@@ -28,8 +29,47 @@ const MENU_ITEMS = [
   { label: "웨딩 체크리스트", Icon: ListChecks, to: "/checklist" },
   { label: "AI 드레스 합성", Icon: Sparkles, to: "/ai/dress" },
   { label: "AI 웨딩홀 합성", Icon: Building2, to: "/ai/hall" },
+  { label: "업체 채팅", Icon: Store, to: "/vendor-chat" },
   { label: "대시보드로 가기", Icon: Home, to: "/" },
 ] as const;
+
+// 채팅방 온보딩 바로가기 — AI 기능·체크리스트로 바로 진입하는 허브
+const ONBOARDING_SHORTCUTS = [
+  { label: "웨딩\n체크리스트", Icon: ListChecks, to: "/checklist" },
+  { label: "AI 드레스\n합성", Icon: Sparkles, to: "/ai/dress" },
+  { label: "AI 웨딩홀\n합성", Icon: Building2, to: "/ai/hall" },
+] as const;
+
+function OnboardingPanel() {
+  const navigate = useNavigate();
+  return (
+    <div className="anim-rise mb-2 rounded-2xl border border-line bg-white p-4">
+      <div className="flex items-center gap-1.5">
+        <Sparkles size={14} className="shrink-0 text-brand" />
+        <span className="text-[13px] font-bold">
+          AI 플래너가 이런 걸 도와드릴 수 있어요
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {ONBOARDING_SHORTCUTS.map(({ label, Icon, to }) => (
+          <button
+            key={to}
+            type="button"
+            onClick={() => navigate(to)}
+            className="flex flex-col items-center gap-1.5 rounded-xl bg-field/70 py-3 transition active:bg-tint"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-tint text-brand">
+              <Icon size={17} strokeWidth={1.9} />
+            </span>
+            <span className="whitespace-pre-line text-center text-[11px] font-semibold leading-tight">
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // 말풍선 + 옆 하단 시각 라벨
 function Bubble({
@@ -334,6 +374,7 @@ export default function Chat() {
       </AnimatePresence>
 
       <main className="flex flex-1 flex-col gap-1 px-4 pt-4 pb-[104px]">
+        <OnboardingPanel />
         {(messages.length > 0 || typing) && (
           <div className="pb-2 text-center text-[11px] text-faint">오늘</div>
         )}

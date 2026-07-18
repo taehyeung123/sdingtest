@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import BottomSheet from "../components/BottomSheet";
+import FloatingChat from "../components/FloatingChat";
 import StatusBadge from "../components/StatusBadge";
 import { useApp } from "../store/AppContext";
 import { GROUP_ORDER, progressPercent } from "../lib/wedding";
@@ -317,6 +318,8 @@ export default function Checklist() {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
       />
+
+      <FloatingChat offsetClass="bottom-[max(env(safe-area-inset-bottom),24px)]" />
     </div>
   );
 }
