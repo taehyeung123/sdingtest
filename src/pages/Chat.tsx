@@ -32,7 +32,7 @@ const MENU_ITEMS = [
   { label: "AI 드레스 합성", Icon: Sparkles, to: "/ai/dress" },
   { label: "AI 웨딩홀 합성", Icon: Building2, to: "/ai/hall" },
   { label: "업체 채팅", Icon: Store, to: "/vendor-chat" },
-  { label: "대시보드로 가기", Icon: Home, to: "/" },
+  { label: "대시보드로 가기", Icon: Home, to: "/planner" },
 ] as const;
 
 // 채팅방 온보딩 — 체크리스트를 대표 행(진행률·다음 할 일 포함)으로 보여주고
@@ -343,7 +343,7 @@ export default function Chat() {
         <button
           type="button"
           aria-label="뒤로가기"
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full active:scale-95"
         >
           <ChevronLeft size={24} strokeWidth={2.2} />

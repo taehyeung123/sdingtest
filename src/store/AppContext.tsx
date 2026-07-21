@@ -11,12 +11,16 @@ import {
 import type {
   ChatMessage,
   ChecklistItem,
+  CommunityComment,
+  CommunityPost,
   ProgressSummary,
   RegisteredVendor,
   VendorChatMessage,
 } from "../types";
 import { INITIAL_CHECKLIST } from "../data/checklist";
-import { progressSummary } from "../lib/wedding";
+import { SEED_POSTS } from "../data/community";
+import { USER_NAME, progressSummary } from "../lib/wedding";
+import { uid } from "../lib/utils";
 
 // ---- localStorage 영속화 (베타: 실서버 저장 없음) ----------------------------
 // blob: URL(사진 로컬 미리보기)은 새로고침 후 무효라 저장 시 제거한다.
@@ -33,6 +37,8 @@ interface PersistedState {
   vendorChats: Record<string, VendorChatMessage[]>;
   points: number;
   aiPass: boolean;
+  communityPosts: CommunityPost[];
+  likedPostIds: string[];
 }
 
 function dropBlobUrl(url?: string): string | undefined {
@@ -90,6 +96,16 @@ function loadPersisted(): PersistedState | null {
           ? parsed.points
           : SIGNUP_POINTS,
       aiPass: Boolean(parsed.aiPass),
+      // 시드보다 짧으면(스키마 변경 등) 저장본을 버리고 시드로 되돌린다.
+      // 사용자가 새로 쓴 글은 항상 앞쪽에 prepend되므로 길이만 봐도 충분하다.
+      communityPosts:
+        Array.isArray(parsed.communityPosts) &&
+        parsed.communityPosts.length >= SEED_POSTS.length
+          ? parsed.communityPosts
+          : SEED_POSTS,
+      likedPostIds: Array.isArray(parsed.likedPostIds)
+        ? parsed.likedPostIds
+        : [],
     };
   } catch {
     return null;
@@ -123,6 +139,15 @@ interface AppContextValue {
   /** 포인트 차감 — 잔액 부족이면 false 반환하고 차감하지 않음 */
   spendPoints: (amount: number) => boolean;
   activateAiPass: () => void;
+  /** 커뮤니티 게시글 (시드 + 내가 새로 쓴 글) */
+  communityPosts: CommunityPost[];
+  /** 내가 좋아요 누른 게시글 id 목록 — 표시 좋아요 수는 post.likeCount + (좋아요 여부) */
+  likedPostIds: string[];
+  toggleLike: (postId: string) => void;
+  addCommunityPost: (
+    post: Omit<CommunityPost, "id" | "likeCount" | "comments" | "timestamp">,
+  ) => string;
+  addComment: (postId: string, text: string) => void;
   /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
   resetAll: () => void;
 }
@@ -148,6 +173,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [aiPass, setAiPass] = useState<boolean>(
     () => loadPersisted()?.aiPass ?? false,
   );
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(
+    () => loadPersisted()?.communityPosts ?? SEED_POSTS,
+  );
+  const [likedPostIds, setLikedPostIds] = useState<string[]>(
+    () => loadPersisted()?.likedPostIds ?? [],
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -162,6 +193,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           vendorChats,
           points,
           aiPass,
+          communityPosts,
+          likedPostIds,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
@@ -169,7 +202,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }, 150);
     return () => clearTimeout(timer);
-  }, [items, messages, greeted, vendorChats, points, aiPass]);
+  }, [
+    items,
+    messages,
+    greeted,
+    vendorChats,
+    points,
+    aiPass,
+    communityPosts,
+    likedPostIds,
+  ]);
 
   const toggleItem = useCallback((id: string) => {
     setItems((prev) =>
@@ -239,6 +281,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const activateAiPass = useCallback(() => setAiPass(true), []);
 
+  const toggleLike = useCallback((postId: string) => {
+    setLikedPostIds((prev) =>
+      prev.includes(postId)
+        ? prev.filter((id) => id !== postId)
+        : [...prev, postId],
+    );
+  }, []);
+
+  const addCommunityPost = useCallback(
+    (
+      post: Omit<CommunityPost, "id" | "likeCount" | "comments" | "timestamp">,
+    ) => {
+      const id = uid();
+      setCommunityPosts((prev) => [
+        {
+          ...post,
+          id,
+          likeCount: 0,
+          comments: [],
+          timestamp: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+      return id;
+    },
+    [],
+  );
+
+  const addComment = useCallback((postId: string, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const comment: CommunityComment = {
+      id: uid(),
+      author: USER_NAME,
+      text: trimmed,
+      timestamp: new Date().toISOString(),
+    };
+    setCommunityPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments: [...p.comments, comment] } : p,
+      ),
+    );
+  }, []);
+
   const showToast = useCallback((message: string) => {
     setToastMessage(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -257,6 +343,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setVendorChats({});
     setPoints(SIGNUP_POINTS);
     setAiPass(false);
+    setCommunityPosts(SEED_POSTS);
+    setLikedPostIds([]);
     showToast("베타 데이터를 초기 상태로 되돌렸어요");
   }, [showToast]);
 
@@ -282,6 +370,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       aiPass,
       spendPoints,
       activateAiPass,
+      communityPosts,
+      likedPostIds,
+      toggleLike,
+      addCommunityPost,
+      addComment,
       resetAll,
     }),
     [
@@ -303,6 +396,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       aiPass,
       spendPoints,
       activateAiPass,
+      communityPosts,
+      likedPostIds,
+      toggleLike,
+      addCommunityPost,
+      addComment,
       resetAll,
     ],
   );

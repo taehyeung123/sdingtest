@@ -27,6 +27,24 @@ export type VendorCategory =
   | "청첩장"
   | "사회자";
 
+// VendorCategory 14종의 런타임 배열 (카테고리 그리드 렌더링용)
+export const VENDOR_CATEGORIES: VendorCategory[] = [
+  "웨딩홀",
+  "스튜디오",
+  "드레스",
+  "헤어&메이크업",
+  "헤어변형",
+  "본식스냅",
+  "스냅(데이트·가봉·아이폰)",
+  "영상(DVD촬영)",
+  "예물",
+  "예복",
+  "한복",
+  "부케",
+  "청첩장",
+  "사회자",
+];
+
 export type VendorStatus = "상담중" | "계약완료" | "완료(업체 미등록)";
 
 // 체크리스트에 등록된 업체
@@ -108,4 +126,46 @@ export interface VendorProduct {
   /** mock 변형용 CSS filter — 실제 합성 대신 톤을 달리해 노출 */
   filter?: string;
   priceLabel?: string;
+}
+
+// 디스플레이 광고 (홈/전체서비스/커뮤니티 노출, 전부 mock — 실제 광고 연동 없음)
+export interface AdBanner {
+  id: string;
+  sponsor: string;
+  title: string;
+  sub: string;
+  /** 배경에 쓸 mock 이미지. 없으면 브랜드 컬러 카드로 렌더링 */
+  imageUrl?: string;
+  /** imageUrl이 있을 때 텍스트 대비를 위한 톤 */
+  tone: "light" | "dark" | "brand";
+  href: string;
+  /** "AD" 배지 대신 보여줄 라벨 (기본: "광고") */
+  badgeLabel?: string;
+}
+
+// 커뮤니티 — 카테고리
+export type CommunityCategory = "후기" | "고민상담" | "자유" | "정보공유";
+
+export interface CommunityComment {
+  id: string;
+  author: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface CommunityPost {
+  id: string;
+  category: CommunityCategory;
+  author: string;
+  /** "D-45 예비신부" 같은 저자 뱃지 */
+  authorBadge: string;
+  title: string;
+  body: string;
+  imageUrls: string[];
+  /** 후기글에서 업체를 태그한 경우 */
+  vendorTag?: { vendorId: string; vendorName: string; category: VendorCategory };
+  /** 시드 데이터 기준 좋아요 수 (내 좋아요 여부는 AppContext의 likedPostIds로 별도 관리) */
+  likeCount: number;
+  comments: CommunityComment[];
+  timestamp: string;
 }

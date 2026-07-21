@@ -180,7 +180,7 @@ export default function Checklist() {
     <div className="min-h-dvh bg-page pb-12">
       <PageHeader
         title="웨딩 체크리스트"
-        onBack={() => navigate("/")}
+        onBack={() => navigate(-1)}
         right={
           <span className="text-[14px] font-bold text-ink">
             <span className="text-brand">{summary.doneCount}</span>

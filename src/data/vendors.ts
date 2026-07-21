@@ -408,3 +408,10 @@ export function vendorsByCategory(category: VendorCategory): VendorSummary[] {
 export function vendorById(id: string): VendorSummary | undefined {
   return VENDORS.find((v) => v.id === id);
 }
+
+// 평점·후기 수 기준 인기 업체 (홈/전체서비스 트렌딩 섹션용)
+export function topRatedVendors(count = 6): VendorSummary[] {
+  return [...VENDORS]
+    .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
+    .slice(0, count);
+}

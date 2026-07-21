@@ -237,7 +237,7 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
       <PageHeader
         title={config.title}
         dark
-        onBack={() => navigate("/")}
+        onBack={() => navigate("/planner")}
         right={pointChip}
       />
 

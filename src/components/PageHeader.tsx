@@ -23,7 +23,7 @@ export default function PageHeader({ title, right, onBack, dark }: Props) {
       <button
         type="button"
         aria-label="뒤로가기"
-        onClick={onBack ?? (() => navigate("/"))}
+        onClick={onBack ?? (() => navigate(-1))}
         className={`flex h-11 w-11 items-center justify-center rounded-full active:scale-95 ${
           dark ? "text-white" : "text-ink"
         }`}
