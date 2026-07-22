@@ -7,7 +7,6 @@ import VendorCard from "../components/VendorCard";
 import RegionChips from "../components/RegionChips";
 import { filterVendors } from "../data/vendors";
 import type { VendorSort } from "../data/vendors";
-import { useApp } from "../store/AppContext";
 import { VENDOR_CATEGORIES, VENDOR_REGIONS } from "../types";
 import type { Region, VendorSummary } from "../types";
 
@@ -22,7 +21,7 @@ export default function VendorBrowse() {
   const { category: rawCategory } = useParams<{ category: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { items, showToast, trackVendorView } = useApp();
+  const itemParam = searchParams.get("item");
 
   // 전체서비스 등에서 ?region=서울 형태로 넘어오면 초기 선택값으로 반영
   const regionParam = searchParams.get("region");
@@ -48,16 +47,11 @@ export default function VendorBrowse() {
     [category, region, sort],
   );
 
-  const handleSelect = (vendor: VendorSummary) => {
-    trackVendorView(vendor.id);
-    const queryItemId = searchParams.get("item");
-    const targetId =
-      queryItemId ?? items.find((it) => it.category === category)?.id;
-    if (!targetId) {
-      showToast("연결된 체크리스트 항목이 없어요");
-      return;
-    }
-    navigate(`/checklist/${targetId}/register?vendorId=${vendor.id}`);
+  // 카드를 누르면 상세 화면으로 — 상담 등록은 상세 화면의 CTA에서 처리한다.
+  // item 쿼리(체크리스트에서 넘어온 경우)는 그대로 상세 화면까지 실어 보낸다.
+  const goToDetail = (vendor: VendorSummary) => {
+    const path = `/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`;
+    navigate(itemParam ? `${path}?item=${encodeURIComponent(itemParam)}` : path);
   };
 
   const activeSortLabel = SORT_OPTIONS.find((s) => s.value === sort)?.label;
@@ -97,7 +91,7 @@ export default function VendorBrowse() {
                   key={vendor.id}
                   vendor={vendor}
                   showTags
-                  onClick={() => handleSelect(vendor)}
+                  onClick={() => goToDetail(vendor)}
                 />
               ))}
             </div>
@@ -112,7 +106,7 @@ export default function VendorBrowse() {
           )}
 
           <p className="pb-2 pt-6 text-center text-[12px] text-faint">
-            베타에서는 업체 상세 대신 목록까지만 제공해요
+            업체를 눌러 상세 정보와 실제 후기를 확인해보세요
           </p>
         </>
       ) : (

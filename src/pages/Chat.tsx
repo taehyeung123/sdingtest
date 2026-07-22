@@ -211,9 +211,9 @@ function MessageRow({ msg, showChips, onChip }: RowProps) {
           <VendorCard
             key={v.id}
             vendor={v}
-            onClick={() => {
-              if (to) navigate(to);
-            }}
+            onClick={() =>
+              navigate(`/vendors/${encodeURIComponent(v.category)}/${v.id}`)
+            }
           />
         ))}
         {to && (

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Checklist from "./pages/Checklist";
 import VendorForm from "./pages/VendorForm";
 import VendorBrowse from "./pages/VendorBrowse";
+import VendorDetail from "./pages/VendorDetail";
 import Chat from "./pages/Chat";
 import VendorChatList from "./pages/VendorChatList";
 import VendorChatRoom from "./pages/VendorChatRoom";
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/checklist" element={<Checklist />} />
           <Route path="/checklist/:itemId/register" element={<VendorForm />} />
           <Route path="/vendors/:category" element={<VendorBrowse />} />
+          <Route path="/vendors/:category/:vendorId" element={<VendorDetail />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/vendor-chat" element={<VendorChatList />} />
           <Route path="/vendor-chat/:itemId" element={<VendorChatRoom />} />
