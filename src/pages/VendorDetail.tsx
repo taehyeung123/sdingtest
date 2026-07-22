@@ -12,6 +12,7 @@ import PageHeader from "../components/PageHeader";
 import VendorThumb from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import { vendorById } from "../data/vendors";
+import { productsByVendor } from "../data/products";
 import { formatTime } from "../lib/utils";
 
 // AI 합성에서 업체 선택이 지원되는 카테고리 (SynthesisFlow 참고)
@@ -68,6 +69,7 @@ export default function VendorDetail() {
     .filter((p) => p.vendorTag?.vendorId === vendor.id)
     .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
   const aiRoute = AI_SYNTHESIS_ROUTE[vendor.category];
+  const products = productsByVendor(vendor.id);
 
   const handleRegister = () => {
     const queryItemId = searchParams.get("item");
@@ -162,6 +164,41 @@ export default function VendorDetail() {
               </span>
             </span>
           </button>
+        )}
+
+        {products.length > 0 && (
+          <div className="mt-6 border-t border-line pt-4">
+            <span className="text-[14px] font-bold text-ink">
+              등록 상품 {products.length}
+            </span>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              {products.map((p) => (
+                <div
+                  key={p.id}
+                  className="overflow-hidden rounded-xl border border-line"
+                >
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-field">
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="h-full w-full object-cover object-top"
+                      style={{ filter: p.filter }}
+                    />
+                  </div>
+                  <div className="p-2.5">
+                    <p className="truncate text-[12.5px] font-bold text-ink">
+                      {p.name}
+                    </p>
+                    {p.priceLabel && (
+                      <p className="mt-0.5 text-[11px] text-sub">
+                        정찰가 {p.priceLabel}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         <div className="mt-6 border-t border-line pt-4">

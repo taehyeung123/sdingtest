@@ -148,7 +148,7 @@ export default function CommunityPostDetail() {
             type="button"
             onClick={() =>
               navigate(
-                `/vendors/${encodeURIComponent(post.vendorTag!.category)}`,
+                `/vendors/${encodeURIComponent(post.vendorTag!.category)}/${post.vendorTag!.vendorId}`,
               )
             }
             className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-line bg-field/60 p-3 text-left transition active:scale-[0.99] active:bg-field"
@@ -162,7 +162,7 @@ export default function CommunityPostDetail() {
               <p className="truncate text-[13px] font-bold text-ink">
                 {post.vendorTag.vendorName}
               </p>
-              <p className="mt-0.5 text-[11px] text-sub">업체 보러가기</p>
+              <p className="mt-0.5 text-[11px] text-sub">업체 상세 보기</p>
             </div>
             <ChevronRight size={16} className="shrink-0 text-faint" />
           </button>

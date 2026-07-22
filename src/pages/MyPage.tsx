@@ -129,7 +129,7 @@ export default function MyPage() {
   );
 
   const goVendor = (vendor: VendorSummary) =>
-    navigate(`/vendors/${encodeURIComponent(vendor.category)}`);
+    navigate(`/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`);
 
   return (
     <div className="min-h-dvh bg-page pb-24">

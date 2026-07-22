@@ -326,7 +326,7 @@ export default function Home() {
               showRegion={!homeRegion}
               onClick={() =>
                 navigate(
-                  `/vendors/${encodeURIComponent(vendor.category)}?region=${encodeURIComponent(vendor.region)}`,
+                  `/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`,
                 )
               }
             />
@@ -454,7 +454,9 @@ export default function Home() {
               key={vendor.id}
               vendor={vendor}
               onClick={() =>
-                navigate(`/vendors/${encodeURIComponent(vendor.category)}`)
+                navigate(
+                  `/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`,
+                )
               }
             />
           ))}
@@ -512,7 +514,9 @@ export default function Home() {
                 vendor={vendor}
                 showRegion
                 onClick={() =>
-                  navigate(`/vendors/${encodeURIComponent(vendor.category)}`)
+                  navigate(
+                    `/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`,
+                  )
                 }
               />
             ))}

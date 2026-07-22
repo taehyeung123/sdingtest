@@ -138,6 +138,10 @@ export default function Services() {
     navigate(region ? `${path}?region=${encodeURIComponent(region)}` : path);
   };
 
+  // 업체 카드 탭 → 업체 상세 (등록 폼이 아니라 정보 화면이 먼저)
+  const goToVendor = (vendorId: string, category: string) =>
+    navigate(`/vendors/${encodeURIComponent(category)}/${vendorId}`);
+
   return (
     <div className="min-h-dvh bg-page pb-24">
       <header className="anim-rise sticky top-0 z-30 border-b border-line bg-white/95 px-5 pb-3 pt-4 backdrop-blur">
@@ -265,7 +269,7 @@ export default function Services() {
                 key={vendor.id}
                 vendor={vendor}
                 showTags
-                onClick={() => goToCategory(vendor.category)}
+                onClick={() => goToVendor(vendor.id, vendor.category)}
               />
             ))}
           </div>
@@ -297,7 +301,7 @@ export default function Services() {
               <VendorCard
                 key={vendor.id}
                 vendor={vendor}
-                onClick={() => goToCategory(vendor.category)}
+                onClick={() => goToVendor(vendor.id, vendor.category)}
               />
             ))}
           </div>

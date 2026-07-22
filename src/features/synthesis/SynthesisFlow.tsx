@@ -460,12 +460,12 @@ export default function SynthesisFlow({ config }: { config: SynthesisConfig }) {
               type="button"
               onClick={() =>
                 navigate(
-                  `/checklist/${config.checklistItemId}/register?vendorId=${vendor.id}`,
+                  `/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}?item=${config.checklistItemId}`,
                 )
               }
               className="h-12 rounded-xl border border-white/10 bg-dark-card text-[13px] font-semibold text-white/85 transition active:scale-[0.98]"
             >
-              이 업체로 상담 등록
+              이 업체 자세히 보기
             </button>
           </div>
         </main>
