@@ -1,34 +1,36 @@
+import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { SearchX } from "lucide-react";
+import { ArrowUpDown, Check, SearchX } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import BottomSheet from "../components/BottomSheet";
 import VendorCard from "../components/VendorCard";
-import { vendorsByCategory } from "../data/vendors";
+import RegionChips from "../components/RegionChips";
+import { filterVendors } from "../data/vendors";
+import type { VendorSort } from "../data/vendors";
 import { useApp } from "../store/AppContext";
-import type { VendorCategory, VendorSummary } from "../types";
+import { VENDOR_CATEGORIES, VENDOR_REGIONS } from "../types";
+import type { Region, VendorSummary } from "../types";
 
-// 런타임 카테고리 검증용 (types.ts의 VendorCategory 14종과 동일)
-const CATEGORIES: VendorCategory[] = [
-  "웨딩홀",
-  "스튜디오",
-  "드레스",
-  "헤어&메이크업",
-  "헤어변형",
-  "본식스냅",
-  "스냅(데이트·가봉·아이폰)",
-  "영상(DVD촬영)",
-  "예물",
-  "예복",
-  "한복",
-  "부케",
-  "청첩장",
-  "사회자",
+const SORT_OPTIONS: { value: VendorSort; label: string }[] = [
+  { value: "recommended", label: "추천순" },
+  { value: "rating", label: "평점 높은순" },
+  { value: "reviews", label: "후기 많은순" },
+  { value: "priceAsc", label: "가격 낮은순" },
 ];
 
 export default function VendorBrowse() {
   const { category: rawCategory } = useParams<{ category: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { items, showToast } = useApp();
+  const { items, showToast, trackVendorView } = useApp();
+
+  // 전체서비스 등에서 ?region=서울 형태로 넘어오면 초기 선택값으로 반영
+  const regionParam = searchParams.get("region");
+  const [region, setRegion] = useState<Region | null>(
+    () => VENDOR_REGIONS.find((r) => r === regionParam) ?? null,
+  );
+  const [sort, setSort] = useState<VendorSort>("recommended");
+  const [sortSheetOpen, setSortSheetOpen] = useState(false);
 
   let decoded = rawCategory ?? "";
   try {
@@ -36,10 +38,18 @@ export default function VendorBrowse() {
   } catch {
     // 잘못된 인코딩이면 원본 그대로 사용
   }
-  const category = CATEGORIES.find((c) => c === decoded);
-  const vendors = category ? vendorsByCategory(category) : [];
+  const category = VENDOR_CATEGORIES.find((c) => c === decoded);
+
+  const vendors = useMemo(
+    () =>
+      category
+        ? filterVendors({ category, region: region ?? undefined, sort })
+        : [],
+    [category, region, sort],
+  );
 
   const handleSelect = (vendor: VendorSummary) => {
+    trackVendorView(vendor.id);
     const queryItemId = searchParams.get("item");
     const targetId =
       queryItemId ?? items.find((it) => it.category === category)?.id;
@@ -50,6 +60,8 @@ export default function VendorBrowse() {
     navigate(`/checklist/${targetId}/register?vendorId=${vendor.id}`);
   };
 
+  const activeSortLabel = SORT_OPTIONS.find((s) => s.value === sort)?.label;
+
   return (
     <div className="min-h-dvh bg-page pb-10">
       <PageHeader
@@ -59,25 +71,45 @@ export default function VendorBrowse() {
 
       {category ? (
         <>
-          <div className="flex items-center justify-between px-5 pb-3 pt-4">
-            <p className="text-[13px] text-sub">
-              스딩 등록 업체 · 모두 정찰제 가격이에요
-            </p>
-            <span className="shrink-0 text-[13px] font-bold text-ink">
-              {vendors.length}곳
-            </span>
+          <div className="border-b border-line bg-white px-5 pb-3.5 pt-3.5">
+            <RegionChips value={region} onChange={setRegion} />
           </div>
 
-          <div className="flex flex-col gap-3 px-5">
-            {vendors.map((vendor) => (
-              <VendorCard
-                key={vendor.id}
-                vendor={vendor}
-                showTags
-                onClick={() => handleSelect(vendor)}
-              />
-            ))}
+          <div className="flex items-center justify-between px-5 pb-3 pt-4">
+            <p className="text-[13px] text-sub">
+              스딩 등록 업체 <span className="font-bold text-ink">{vendors.length}곳</span>{" "}
+              · 모두 정찰제 가격이에요
+            </p>
+            <button
+              type="button"
+              onClick={() => setSortSheetOpen(true)}
+              className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-sub"
+            >
+              <ArrowUpDown size={13} />
+              {activeSortLabel}
+            </button>
           </div>
+
+          {vendors.length > 0 ? (
+            <div className="flex flex-col gap-3 px-5">
+              {vendors.map((vendor) => (
+                <VendorCard
+                  key={vendor.id}
+                  vendor={vendor}
+                  showTags
+                  onClick={() => handleSelect(vendor)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mx-5 flex flex-col items-center gap-2 rounded-2xl border border-line bg-white py-12">
+              <SearchX size={26} strokeWidth={1.6} className="text-faint" />
+              <p className="text-[13px] font-semibold text-ink">
+                이 지역에는 등록된 업체가 없어요
+              </p>
+              <p className="text-[12px] text-faint">다른 지역을 선택해보세요</p>
+            </div>
+          )}
 
           <p className="pb-2 pt-6 text-center text-[12px] text-faint">
             베타에서는 업체 상세 대신 목록까지만 제공해요
@@ -96,6 +128,34 @@ export default function VendorBrowse() {
           </div>
         </div>
       )}
+
+      <BottomSheet
+        open={sortSheetOpen}
+        onClose={() => setSortSheetOpen(false)}
+        title="정렬 방식"
+      >
+        <div className="flex flex-col px-2 pb-2">
+          {SORT_OPTIONS.map((opt) => {
+            const active = sort === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setSort(opt.value);
+                  setSortSheetOpen(false);
+                }}
+                className="flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-[14px] font-medium transition active:bg-field"
+              >
+                <span className={active ? "font-bold text-brand" : "text-ink"}>
+                  {opt.label}
+                </span>
+                {active && <Check size={17} className="text-brand" />}
+              </button>
+            );
+          })}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

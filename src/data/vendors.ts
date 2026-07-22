@@ -1,14 +1,16 @@
-import type { VendorCategory, VendorSummary } from "../types";
+import type { Region, VendorCategory, VendorSummary } from "../types";
 
-// 스딩 등록 업체 mock (전 카테고리 커버, 실제 업체 아님)
+// 스딩 등록 업체 mock (전 카테고리·8개 지역 커버, 실제 업체 아님)
 export const VENDORS: VendorSummary[] = [
   // 웨딩홀
   {
     id: "v-hall-1",
     name: "더채플앳청담",
     category: "웨딩홀",
+    region: "서울",
     thumbnailUrl: "/mock/hall-1.jpg",
     priceLabel: "2,800만원~",
+    priceFrom: 2800,
     rating: 4.9,
     reviewCount: 214,
     moodTags: ["채플", "화이트톤", "청담"],
@@ -17,8 +19,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hall-2",
     name: "라루체 화이트홀",
     category: "웨딩홀",
+    region: "서울",
     thumbnailUrl: "/mock/hall-1.jpg",
     priceLabel: "2,300만원~",
+    priceFrom: 2300,
     rating: 4.7,
     reviewCount: 156,
     moodTags: ["단독홀", "밝은분위기"],
@@ -27,8 +31,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hall-3",
     name: "그랜드힐 컨벤션",
     category: "웨딩홀",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "1,900만원~",
+    priceFrom: 1900,
     rating: 4.6,
     reviewCount: 189,
     moodTags: ["대형홀", "역세권"],
@@ -37,8 +43,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hall-4",
     name: "메종 드 가든",
     category: "웨딩홀",
+    region: "강원",
     thumbnailUrl: "",
     priceLabel: "3,200만원~",
+    priceFrom: 3200,
     rating: 4.8,
     reviewCount: 98,
     moodTags: ["야외", "가든", "스몰웨딩"],
@@ -47,8 +55,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hall-5",
     name: "루체르 스퀘어",
     category: "웨딩홀",
+    region: "부산·울산·경남",
     thumbnailUrl: "",
     priceLabel: "2,100만원~",
+    priceFrom: 2100,
     rating: 4.5,
     reviewCount: 143,
     moodTags: ["모던", "호텔식"],
@@ -59,8 +69,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-studio-1",
     name: "르블랑 스튜디오",
     category: "스튜디오",
+    region: "서울",
     thumbnailUrl: "/mock/dress-2.jpg",
     priceLabel: "120만원",
+    priceFrom: 120,
     rating: 4.9,
     reviewCount: 128,
     moodTags: ["청담", "인물중심"],
@@ -69,8 +81,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-studio-2",
     name: "오브제 스튜디오",
     category: "스튜디오",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "95만원",
+    priceFrom: 95,
     rating: 4.7,
     reviewCount: 211,
     moodTags: ["내추럴", "필름감성"],
@@ -79,8 +93,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-studio-3",
     name: "테일러그라피",
     category: "스튜디오",
+    region: "제주",
     thumbnailUrl: "",
     priceLabel: "140만원",
+    priceFrom: 140,
     rating: 4.8,
     reviewCount: 87,
     moodTags: ["시네마틱", "야외촬영"],
@@ -89,8 +105,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-studio-4",
     name: "모노클 스튜디오",
     category: "스튜디오",
+    region: "대전·충청",
     thumbnailUrl: "",
     priceLabel: "88만원",
+    priceFrom: 88,
     rating: 4.6,
     reviewCount: 164,
     moodTags: ["미니멀", "가성비"],
@@ -101,8 +119,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dress-1",
     name: "끌레르 브라이덜",
     category: "드레스",
+    region: "서울",
     thumbnailUrl: "/mock/dress-1.jpg",
     priceLabel: "180만원~",
+    priceFrom: 180,
     rating: 4.9,
     reviewCount: 96,
     moodTags: ["비즈", "A라인"],
@@ -111,8 +131,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dress-2",
     name: "베르아 드레스",
     category: "드레스",
+    region: "서울",
     thumbnailUrl: "/mock/dress-2.jpg",
     priceLabel: "150만원~",
+    priceFrom: 150,
     rating: 4.7,
     reviewCount: 132,
     moodTags: ["머메이드", "심플"],
@@ -121,8 +143,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dress-3",
     name: "로잘린 브라이덜",
     category: "드레스",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "210만원~",
+    priceFrom: 210,
     rating: 4.8,
     reviewCount: 74,
     moodTags: ["수입드레스", "럭셔리"],
@@ -131,8 +155,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dress-4",
     name: "뮤즈 드레스",
     category: "드레스",
+    region: "대구·경북",
     thumbnailUrl: "",
     priceLabel: "135만원~",
+    priceFrom: 135,
     rating: 4.6,
     reviewCount: 118,
     moodTags: ["빈티지", "레이스"],
@@ -143,8 +169,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hm-1",
     name: "제이로사 뷰티",
     category: "헤어&메이크업",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "70만원",
+    priceFrom: 70,
     rating: 4.8,
     reviewCount: 203,
     moodTags: ["청담", "물광메이크업"],
@@ -153,8 +181,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hm-2",
     name: "아뜰리에 수",
     category: "헤어&메이크업",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "55만원",
+    priceFrom: 55,
     rating: 4.7,
     reviewCount: 176,
     moodTags: ["내추럴", "합리적"],
@@ -163,8 +193,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hm-3",
     name: "블랑쉬 헤어메이크업",
     category: "헤어&메이크업",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "65만원",
+    priceFrom: 65,
     rating: 4.9,
     reviewCount: 145,
     moodTags: ["또렷한눈매", "고정력"],
@@ -175,8 +207,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hair-1",
     name: "살롱 드 마리",
     category: "헤어변형",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "15만원~",
+    priceFrom: 15,
     rating: 4.7,
     reviewCount: 89,
     moodTags: ["볼륨매직", "손상최소"],
@@ -185,8 +219,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hair-2",
     name: "헤르츠 헤어",
     category: "헤어변형",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "12만원~",
+    priceFrom: 12,
     rating: 4.6,
     reviewCount: 67,
     moodTags: ["뿌리볼륨", "예약제"],
@@ -197,8 +233,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-snap-1",
     name: "딥포커스 스냅",
     category: "본식스냅",
+    region: "서울",
     thumbnailUrl: "/mock/hall-1.jpg",
     priceLabel: "80만원",
+    priceFrom: 80,
     rating: 4.9,
     reviewCount: 154,
     moodTags: ["2인촬영", "원본전체"],
@@ -207,8 +245,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-snap-2",
     name: "라이트룸 스냅",
     category: "본식스냅",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "65만원",
+    priceFrom: 65,
     rating: 4.8,
     reviewCount: 132,
     moodTags: ["밝은보정", "빠른전달"],
@@ -217,8 +257,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-snap-3",
     name: "프레임원 스냅",
     category: "본식스냅",
+    region: "부산·울산·경남",
     thumbnailUrl: "",
     priceLabel: "55만원",
+    priceFrom: 55,
     rating: 4.6,
     reviewCount: 98,
     moodTags: ["1인촬영", "가성비"],
@@ -229,8 +271,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dsnap-1",
     name: "무드필름",
     category: "스냅(데이트·가봉·아이폰)",
+    region: "광주·전남",
     thumbnailUrl: "",
     priceLabel: "25만원~",
+    priceFrom: 25,
     rating: 4.8,
     reviewCount: 76,
     moodTags: ["데이트스냅", "감성"],
@@ -239,8 +283,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dsnap-2",
     name: "어니언 아이폰스냅",
     category: "스냅(데이트·가봉·아이폰)",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "18만원~",
+    priceFrom: 18,
     rating: 4.7,
     reviewCount: 112,
     moodTags: ["아이폰스냅", "자연스러움"],
@@ -251,8 +297,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dvd-1",
     name: "시네마틱웨딩 필름",
     category: "영상(DVD촬영)",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "90만원",
+    priceFrom: 90,
     rating: 4.8,
     reviewCount: 88,
     moodTags: ["4K", "하이라이트"],
@@ -261,8 +309,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-dvd-2",
     name: "러브레터 필름",
     category: "영상(DVD촬영)",
+    region: "대전·충청",
     thumbnailUrl: "",
     priceLabel: "70만원",
+    priceFrom: 70,
     rating: 4.7,
     reviewCount: 64,
     moodTags: ["세리머니", "풀영상"],
@@ -273,8 +323,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-jewel-1",
     name: "골드앤 주얼리",
     category: "예물",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "상담 후 안내",
+    priceFrom: 99999,
     rating: 4.7,
     reviewCount: 52,
     moodTags: ["커플링", "종로"],
@@ -283,8 +335,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-jewel-2",
     name: "루미에르 다이아",
     category: "예물",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "상담 후 안내",
+    priceFrom: 99999,
     rating: 4.8,
     reviewCount: 41,
     moodTags: ["프로포즈링", "GIA"],
@@ -295,8 +349,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-suit-1",
     name: "클래시코 수트",
     category: "예복",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "80만원~",
+    priceFrom: 80,
     rating: 4.7,
     reviewCount: 66,
     moodTags: ["맞춤정장", "클래식"],
@@ -305,8 +361,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-suit-2",
     name: "젠틀맨 테일러",
     category: "예복",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "95만원~",
+    priceFrom: 95,
     rating: 4.8,
     reviewCount: 49,
     moodTags: ["세미맞춤", "이태리원단"],
@@ -317,8 +375,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hanbok-1",
     name: "담연 한복",
     category: "한복",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "60만원~",
+    priceFrom: 60,
     rating: 4.8,
     reviewCount: 58,
     moodTags: ["맞춤한복", "고급원단"],
@@ -327,8 +387,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-hanbok-2",
     name: "한올 한복",
     category: "한복",
+    region: "대구·경북",
     thumbnailUrl: "",
     priceLabel: "45만원~",
+    priceFrom: 45,
     rating: 4.6,
     reviewCount: 37,
     moodTags: ["대여", "모던한복"],
@@ -339,8 +401,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-bouquet-1",
     name: "플뢰르 아뜰리에",
     category: "부케",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "15만원~",
+    priceFrom: 15,
     rating: 4.9,
     reviewCount: 94,
     moodTags: ["생화", "맞춤제작"],
@@ -349,8 +413,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-bouquet-2",
     name: "보타닉 부케",
     category: "부케",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "12만원~",
+    priceFrom: 12,
     rating: 4.7,
     reviewCount: 61,
     moodTags: ["드라이플라워", "보존부케"],
@@ -361,8 +427,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-invite-1",
     name: "달페이퍼",
     category: "청첩장",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "8만원~",
+    priceFrom: 8,
     rating: 4.8,
     reviewCount: 172,
     moodTags: ["셀프조판", "모바일연동"],
@@ -371,8 +439,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-invite-2",
     name: "페이퍼모먼트",
     category: "청첩장",
+    region: "경기·인천",
     thumbnailUrl: "",
     priceLabel: "10만원~",
+    priceFrom: 10,
     rating: 4.7,
     reviewCount: 138,
     moodTags: ["레터프레스", "감성"],
@@ -383,8 +453,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-mc-1",
     name: "김민준 아나운서",
     category: "사회자",
+    region: "서울",
     thumbnailUrl: "",
     priceLabel: "30만원",
+    priceFrom: 30,
     rating: 4.9,
     reviewCount: 45,
     moodTags: ["차분한진행", "방송출신"],
@@ -393,8 +465,10 @@ export const VENDORS: VendorSummary[] = [
     id: "v-mc-2",
     name: "MC 이태오",
     category: "사회자",
+    region: "부산·울산·경남",
     thumbnailUrl: "",
     priceLabel: "25만원",
+    priceFrom: 25,
     rating: 4.8,
     reviewCount: 62,
     moodTags: ["유쾌한진행", "축가가능"],
@@ -414,4 +488,55 @@ export function topRatedVendors(count = 6): VendorSummary[] {
   return [...VENDORS]
     .sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount)
     .slice(0, count);
+}
+
+export function vendorsByRegion(region: Region): VendorSummary[] {
+  return VENDORS.filter((v) => v.region === region);
+}
+
+export type VendorSort = "recommended" | "rating" | "reviews" | "priceAsc";
+
+export interface VendorFilter {
+  category?: VendorCategory;
+  region?: Region | null;
+  query?: string;
+  sort?: VendorSort;
+}
+
+// 카테고리별/전체서비스 업체 목록 화면 공용 필터+정렬
+export function filterVendors({
+  category,
+  region,
+  query,
+  sort = "recommended",
+}: VendorFilter): VendorSummary[] {
+  const q = (query ?? "").trim().toLowerCase();
+  let list = VENDORS.filter((v) => {
+    if (category && v.category !== category) return false;
+    if (region && v.region !== region) return false;
+    if (q) {
+      const haystack = `${v.name} ${v.moodTags.join(" ")}`.toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  switch (sort) {
+    case "rating":
+      list = list.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
+      break;
+    case "reviews":
+      list = list.sort((a, b) => b.reviewCount - a.reviewCount);
+      break;
+    case "priceAsc":
+      list = list.sort((a, b) => a.priceFrom - b.priceFrom);
+      break;
+    default:
+      // recommended: 평점 · 후기수 가중 정렬
+      list = list.sort(
+        (a, b) => b.rating * Math.log10(b.reviewCount + 10) -
+          a.rating * Math.log10(a.reviewCount + 10),
+      );
+  }
+  return list;
 }

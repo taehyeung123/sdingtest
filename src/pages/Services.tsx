@@ -4,19 +4,24 @@ import {
   Building2,
   Coins,
   ListChecks,
+  MapPin,
   MessageCircle,
   MessagesSquare,
   Search,
   SearchX,
   Sparkles,
+  Tag,
+  TrendingUp,
 } from "lucide-react";
 import AdBanner from "../components/AdBanner";
 import BottomNav from "../components/BottomNav";
 import FloatingChat from "../components/FloatingChat";
+import RegionChips from "../components/RegionChips";
 import VendorCard from "../components/VendorCard";
 import { categoryIcon } from "../components/VendorThumb";
 import { SERVICES_PROMO_AD } from "../data/ads";
-import { topRatedVendors } from "../data/vendors";
+import { filterVendors, topRatedVendors } from "../data/vendors";
+import type { Region } from "../types";
 import { VENDOR_CATEGORIES } from "../types";
 
 // 검색어 정규화 — 공백/대소문자 무시 contains 매칭에 사용
@@ -78,6 +83,7 @@ const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 export default function Services() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [region, setRegion] = useState<Region | null>(null);
 
   const normalizedQuery = normalize(query);
   const isSearching = normalizedQuery.length > 0;
@@ -102,7 +108,35 @@ export default function Services() {
     [isSearching, normalizedQuery],
   );
 
-  const popularVendors = useMemo(() => topRatedVendors(6), []);
+  // 지역을 고르면 해당 지역 등록 업체 수까지 함께 보여줘 이커머스 느낌을 강화
+  const regionVendorCount = useMemo(
+    () => (region ? filterVendors({ region }).length : 0),
+    [region],
+  );
+
+  // 지역 인기 TOP — 지역 선택 시 그 지역 평점순, 미선택 시 전체 평점순(이번 주 인기 업체)
+  const popularVendors = useMemo(
+    () =>
+      region
+        ? filterVendors({ region, sort: "rating" }).slice(0, 6)
+        : topRatedVendors(6),
+    [region],
+  );
+
+  // 합리적인 가격대 — 지역을 관통해 가격 오름차순 상위 몇 개를 큐레이션
+  const budgetVendors = useMemo(
+    () =>
+      filterVendors({ region: region ?? undefined, sort: "priceAsc" }).slice(
+        0,
+        4,
+      ),
+    [region],
+  );
+
+  const goToCategory = (cat: string) => {
+    const path = `/vendors/${encodeURIComponent(cat)}`;
+    navigate(region ? `${path}?region=${encodeURIComponent(region)}` : path);
+  };
 
   return (
     <div className="min-h-dvh bg-page pb-24">
@@ -119,9 +153,25 @@ export default function Services() {
         </div>
       </header>
 
+      {/* 지역 선택 — 이커머스형 지역 필터, 아래 섹션 전체를 관통 */}
+      <section className="anim-rise mt-6 px-5" style={stagger(0)}>
+        <div className="flex items-center gap-1.5">
+          <MapPin size={15} className="text-brand" />
+          <h2 className="text-[16px] font-bold">지역별로 둘러보기</h2>
+        </div>
+        <p className="mt-0.5 text-[12px] text-sub">
+          {region
+            ? `${region} 정찰제 등록 업체 ${regionVendorCount}곳`
+            : "지역을 선택하면 그 지역 업체만 모아 보여드려요"}
+        </p>
+        <div className="mt-3">
+          <RegionChips value={region} onChange={setRegion} />
+        </div>
+      </section>
+
       {/* 빠른 액션 */}
       {filteredQuickActions.length > 0 && (
-        <section className="anim-rise mt-6 px-5" style={stagger(0)}>
+        <section className="anim-rise mt-7 px-5" style={stagger(1)}>
           <div className="grid grid-cols-2 gap-2.5">
             {filteredQuickActions.map(({ label, sub, to, Icon }) => (
               <button
@@ -148,15 +198,17 @@ export default function Services() {
       )}
 
       {/* 프로모 배너 */}
-      <section className="anim-rise mt-6 px-5" style={stagger(1)}>
+      <section className="anim-rise mt-6 px-5" style={stagger(2)}>
         <AdBanner ad={SERVICES_PROMO_AD} heightClass="h-[120px]" />
       </section>
 
       {/* 카테고리별 업체 */}
-      <section className="anim-rise mt-7 px-5" style={stagger(2)}>
+      <section className="anim-rise mt-7 px-5" style={stagger(3)}>
         <h2 className="text-[16px] font-bold">카테고리별 업체</h2>
         <p className="mt-0.5 text-[12px] text-sub">
-          정찰제 업체를 카테고리로 둘러보세요
+          {region
+            ? `${region} 정찰제 업체를 카테고리로 둘러보세요`
+            : "정찰제 업체를 카테고리로 둘러보세요"}
         </p>
 
         {filteredCategories.length > 0 ? (
@@ -167,9 +219,7 @@ export default function Services() {
                 <button
                   key={cat}
                   type="button"
-                  onClick={() =>
-                    navigate(`/vendors/${encodeURIComponent(cat)}`)
-                  }
+                  onClick={() => goToCategory(cat)}
                   className="flex flex-col items-center gap-1.5 text-center transition active:scale-95"
                 >
                   <span className="flex h-14 w-14 items-center justify-center rounded-full bg-tint text-brand">
@@ -195,8 +245,67 @@ export default function Services() {
         )}
       </section>
 
+      {/* 지역 인기 TOP / 이번 주 인기 업체 — 지역을 바꾸면 결과가 바뀌는 걸 보여주는 핵심 섹션 */}
+      <section className="anim-rise mt-7 px-5" style={stagger(4)}>
+        <div className="flex items-center gap-1.5">
+          <TrendingUp size={15} className="text-brand" />
+          <h2 className="text-[16px] font-bold">
+            {region ? `${region} 인기 업체 TOP` : "이번 주 인기 업체"}
+          </h2>
+        </div>
+        <p className="mt-0.5 text-[12px] text-sub">
+          {region
+            ? `${region}에서 평점과 후기가 가장 좋은 업체예요`
+            : "평점과 후기가 가장 좋은 업체예요"}
+        </p>
+        {popularVendors.length > 0 ? (
+          <div className="mt-3.5 flex flex-col gap-2.5">
+            {popularVendors.map((vendor) => (
+              <VendorCard
+                key={vendor.id}
+                vendor={vendor}
+                showTags
+                onClick={() => goToCategory(vendor.category)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-3.5 flex flex-col items-center gap-2 rounded-2xl border border-line bg-white py-10">
+            <SearchX size={26} strokeWidth={1.6} className="text-faint" />
+            <p className="text-[13px] font-semibold text-ink">
+              이 지역에는 등록된 업체가 없어요
+            </p>
+            <p className="text-[12px] text-faint">다른 지역을 선택해보세요</p>
+          </div>
+        )}
+      </section>
+
+      {/* 합리적인 가격대 — 지역을 관통한 가격순 큐레이션으로 이커머스 느낌 강화 */}
+      {budgetVendors.length > 0 && (
+        <section className="anim-rise mt-7 px-5" style={stagger(5)}>
+          <div className="flex items-center gap-1.5">
+            <Tag size={15} className="text-brand" />
+            <h2 className="text-[16px] font-bold">합리적인 가격대로 찾기</h2>
+          </div>
+          <p className="mt-0.5 text-[12px] text-sub">
+            {region
+              ? `${region}에서 가격 부담이 적은 업체부터 모았어요`
+              : "가격 부담이 적은 업체부터 모았어요"}
+          </p>
+          <div className="mt-3.5 flex flex-col gap-2.5">
+            {budgetVendors.map((vendor) => (
+              <VendorCard
+                key={vendor.id}
+                vendor={vendor}
+                onClick={() => goToCategory(vendor.category)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* 이런 것도 있어요 */}
-      <section className="anim-rise mt-7 px-5" style={stagger(3)}>
+      <section className="anim-rise mt-7 px-5" style={stagger(6)}>
         <h2 className="text-[16px] font-bold">이런 것도 있어요</h2>
         <div className="mt-3.5 flex flex-col gap-2.5">
           {MORE_SERVICES.map(({ label, sub, to, Icon }) => (
@@ -216,26 +325,6 @@ export default function Services() {
                 </span>
               </span>
             </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 인기 업체 */}
-      <section className="anim-rise mt-7 px-5" style={stagger(4)}>
-        <h2 className="text-[16px] font-bold">인기 업체</h2>
-        <p className="mt-0.5 text-[12px] text-sub">
-          평점과 후기가 가장 좋은 업체예요
-        </p>
-        <div className="mt-3.5 flex flex-col gap-2.5">
-          {popularVendors.map((vendor) => (
-            <VendorCard
-              key={vendor.id}
-              vendor={vendor}
-              showTags
-              onClick={() =>
-                navigate(`/vendors/${encodeURIComponent(vendor.category)}`)
-              }
-            />
           ))}
         </div>
       </section>

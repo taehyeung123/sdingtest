@@ -1,15 +1,54 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowUp, ChevronRight, Heart, MessageCircle } from "lucide-react";
+import {
+  ArrowUp,
+  Bookmark,
+  ChevronRight,
+  Eye,
+  Heart,
+  MapPin,
+  MessageCircle,
+} from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import VendorThumb from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import { formatTime } from "../lib/utils";
+import type { CommunityPost } from "../types";
+
+const RELATED_COUNT = 3;
+
+function RelatedPostCard({
+  post,
+  onClick,
+}: {
+  post: CommunityPost;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-[168px] shrink-0 flex-col gap-2 rounded-2xl border border-line bg-white p-3 text-left transition active:scale-[0.98] active:bg-black/[0.02]"
+    >
+      <span className="w-fit rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
+        {post.category}
+      </span>
+      <p className="line-clamp-2 text-[13px] font-bold leading-snug text-ink">
+        {post.title}
+      </p>
+      <span className="mt-auto flex items-center gap-1 text-[11px] text-faint">
+        <Heart size={12} strokeWidth={1.9} />
+        {post.likeCount}
+      </span>
+    </button>
+  );
+}
 
 export default function CommunityPostDetail() {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const { communityPosts, likedPostIds, toggleLike, addComment } = useApp();
+  const { communityPosts, likedPostIds, toggleLike, scrappedPostIds, toggleScrap, addComment } =
+    useApp();
   const [comment, setComment] = useState("");
 
   const post = communityPosts.find((p) => p.id === postId);
@@ -18,10 +57,26 @@ export default function CommunityPostDetail() {
     if (!post) navigate("/community", { replace: true });
   }, [post, navigate]);
 
+  const relatedPosts = useMemo(() => {
+    if (!post) return [];
+    return communityPosts
+      .filter(
+        (p) =>
+          p.id !== post.id &&
+          (p.category === post.category ||
+            (post.vendorTag &&
+              p.vendorTag?.category === post.vendorTag.category)),
+      )
+      .sort((a, b) => b.likeCount - a.likeCount)
+      .slice(0, RELATED_COUNT);
+  }, [communityPosts, post]);
+
   if (!post) return null;
 
   const liked = likedPostIds.includes(post.id);
   const likeCount = post.likeCount + (liked ? 1 : 0);
+  const scrapped = scrappedPostIds.includes(post.id);
+  const scrapCount = post.scrapCount + (scrapped ? 1 : 0);
 
   const handleSend = () => {
     const text = comment.trim();
@@ -38,6 +93,12 @@ export default function CommunityPostDetail() {
         <div className="flex items-center gap-1.5">
           <span className="text-[13px] font-bold text-ink">{post.author}</span>
           <span className="text-[12px] text-faint">{post.authorBadge}</span>
+          {post.region && (
+            <span className="flex items-center gap-0.5 rounded-md bg-field px-1.5 py-0.5 text-[10px] font-semibold text-sub">
+              <MapPin size={10} strokeWidth={2} />
+              {post.region}
+            </span>
+          )}
           <span className="ml-auto text-[12px] text-faint">
             {formatTime(post.timestamp)}
           </span>
@@ -46,6 +107,12 @@ export default function CommunityPostDetail() {
         <h1 className="mt-3 text-[19px] font-bold leading-snug text-ink">
           {post.title}
         </h1>
+
+        <div className="mt-2 flex items-center gap-1 text-[12px] text-faint">
+          <Eye size={13} strokeWidth={1.9} />
+          조회 {post.viewCount.toLocaleString()}
+        </div>
+
         <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
           {post.body}
         </p>
@@ -59,6 +126,19 @@ export default function CommunityPostDetail() {
                 alt=""
                 className="h-[220px] w-[220px] shrink-0 rounded-2xl object-cover"
               />
+            ))}
+          </div>
+        )}
+
+        {post.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {post.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-field px-2.5 py-1 text-[12px] font-medium text-sub"
+              >
+                #{tag}
+              </span>
             ))}
           </div>
         )}
@@ -88,22 +168,40 @@ export default function CommunityPostDetail() {
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={() => toggleLike(post.id)}
-          className={`mt-5 flex items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition active:scale-95 ${
-            liked
-              ? "border-brand/40 bg-tint text-brand"
-              : "border-line text-sub"
-          }`}
-        >
-          <Heart
-            size={16}
-            className={liked ? "fill-brand text-brand" : ""}
-            strokeWidth={1.9}
-          />
-          좋아요 {likeCount}
-        </button>
+        <div className="mt-5 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => toggleLike(post.id)}
+            className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition active:scale-95 ${
+              liked
+                ? "border-brand/40 bg-tint text-brand"
+                : "border-line text-sub"
+            }`}
+          >
+            <Heart
+              size={16}
+              className={liked ? "fill-brand text-brand" : ""}
+              strokeWidth={1.9}
+            />
+            좋아요 {likeCount}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggleScrap(post.id)}
+            className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition active:scale-95 ${
+              scrapped
+                ? "border-brand/40 bg-tint text-brand"
+                : "border-line text-sub"
+            }`}
+          >
+            <Bookmark
+              size={16}
+              className={scrapped ? "fill-brand text-brand" : ""}
+              strokeWidth={1.9}
+            />
+            스크랩 {scrapCount}
+          </button>
+        </div>
 
         <div className="mt-6 border-t border-line pt-4">
           <div className="flex items-center gap-1.5">
@@ -137,6 +235,23 @@ export default function CommunityPostDetail() {
             </div>
           )}
         </div>
+
+        {relatedPosts.length > 0 && (
+          <div className="mt-6 border-t border-line pt-4">
+            <p className="text-[14px] font-bold text-ink">
+              이런 글도 많이 봤어요
+            </p>
+            <div className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto pb-1">
+              {relatedPosts.map((rp) => (
+                <RelatedPostCard
+                  key={rp.id}
+                  post={rp}
+                  onClick={() => navigate(`/community/${rp.id}`)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center">

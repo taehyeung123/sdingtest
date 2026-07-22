@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImagePlus, Star, Store, Tag, X } from "lucide-react";
+import { Hash, ImagePlus, MapPin, Star, Store, Tag, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import BottomSheet from "../components/BottomSheet";
+import RegionChips from "../components/RegionChips";
 import VendorThumb from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import { USER_NAME, daysUntilWedding, formatDday } from "../lib/wedding";
 import { vendorsByCategory } from "../data/vendors";
-import type { CommunityCategory, VendorCategory, VendorSummary } from "../types";
+import type {
+  CommunityCategory,
+  Region,
+  VendorCategory,
+  VendorSummary,
+} from "../types";
 import { VENDOR_CATEGORIES } from "../types";
+
+const MAX_TAGS = 5;
 
 const CATEGORIES: CommunityCategory[] = ["후기", "고민상담", "자유", "정보공유"];
 
@@ -120,6 +128,9 @@ export default function CommunityWrite() {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [vendorTag, setVendorTag] = useState<VendorTag | null>(null);
   const [tagSheetOpen, setTagSheetOpen] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [region, setRegion] = useState<Region | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 이 화면에서 생성한 blob URL 추적 — 언마운트 시 정리
   const createdUrls = useRef<Set<string>>(new Set());
@@ -151,6 +162,20 @@ export default function CommunityWrite() {
     setImageUrls((prev) => prev.filter((u) => u !== url));
   };
 
+  const addTag = () => {
+    const t = tagInput.trim().replace(/^#/, "");
+    if (!t || tags.length >= MAX_TAGS || tags.includes(t)) {
+      setTagInput("");
+      return;
+    }
+    setTags((prev) => [...prev, t]);
+    setTagInput("");
+  };
+
+  const removeTag = (t: string) => {
+    setTags((prev) => prev.filter((tag) => tag !== t));
+  };
+
   const handleSubmit = () => {
     if (!canSubmit) return;
     // 등록되는 URL은 언마운트 시 revoke 대상에서 제외 (게시글 상세에서 계속 사용)
@@ -164,6 +189,8 @@ export default function CommunityWrite() {
       body: body.trim(),
       imageUrls,
       vendorTag: vendorTag ?? undefined,
+      region: region ?? undefined,
+      tags,
     });
     showToast("게시글이 등록됐어요");
     navigate(`/community/${id}`, { replace: true });
@@ -262,6 +289,74 @@ export default function CommunityWrite() {
             e.target.value = "";
           }}
         />
+
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-sub">
+            <Hash size={14} />
+            해시태그 (선택, 최대 {MAX_TAGS}개)
+          </p>
+          <div className="mt-2.5 flex items-center gap-2">
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  addTag();
+                }
+              }}
+              disabled={tags.length >= MAX_TAGS}
+              placeholder={
+                tags.length >= MAX_TAGS
+                  ? "최대 개수만큼 추가했어요"
+                  : "태그 입력 후 Enter (예: 정찰제)"
+              }
+              className="h-10 min-w-0 flex-1 rounded-xl bg-field px-3.5 text-[13.5px] outline-none placeholder:text-faint disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={addTag}
+              disabled={tagInput.trim().length === 0 || tags.length >= MAX_TAGS}
+              className={`shrink-0 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition ${
+                tagInput.trim().length > 0 && tags.length < MAX_TAGS
+                  ? "bg-brand text-white active:scale-95"
+                  : "bg-field text-faint"
+              }`}
+            >
+              추가
+            </button>
+          </div>
+          {tags.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 rounded-full bg-tint px-2.5 py-1 text-[12px] font-semibold text-brand"
+                >
+                  #{tag}
+                  <button
+                    type="button"
+                    aria-label={`${tag} 태그 제거`}
+                    onClick={() => removeTag(tag)}
+                    className="active:opacity-70"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-sub">
+            <MapPin size={14} />
+            지역 (선택)
+          </p>
+          <div className="mt-2.5">
+            <RegionChips value={region} onChange={setRegion} />
+          </div>
+        </div>
 
         <div className="mt-5 border-t border-line pt-4">
           <p className="flex items-center gap-1.5 text-[13px] font-semibold text-sub">

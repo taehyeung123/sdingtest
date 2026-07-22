@@ -2,24 +2,32 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
+  Bookmark,
   Building2,
   ChevronRight,
+  Clock,
   Coins,
   FileText,
+  Heart,
   HelpCircle,
   LogOut,
+  MapPin,
   Megaphone,
   MessageSquareHeart,
   RotateCcw,
   Sparkles,
+  Star,
   Users,
 } from "lucide-react";
 import BottomNav from "../components/BottomNav";
 import FloatingChat from "../components/FloatingChat";
 import ProgressRing from "../components/ProgressRing";
 import StatusBadge from "../components/StatusBadge";
+import VendorThumb from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import { MY_NICKNAME } from "../data/community";
+import { vendorById } from "../data/vendors";
+import type { VendorSummary } from "../types";
 import {
   PARTNER_NAME,
   USER_NAME,
@@ -32,14 +40,39 @@ import {
 // 섹션 순차 등장 딜레이 (CSS 애니메이션 — rAF가 멈춰도 콘텐츠는 항상 보임)
 const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 
+// 웨딩 준비 진행률에 따른 등급 뱃지 (게이미피케이션)
+function prepLevel(percent: number): { label: string; className: string } {
+  if (percent >= 100) {
+    return { label: "준비 완료", className: "bg-success/10 text-success" };
+  }
+  if (percent >= 70) {
+    return { label: "막바지", className: "bg-brand/10 text-brand" };
+  }
+  if (percent >= 30) {
+    return { label: "준비중", className: "bg-consult/10 text-consult" };
+  }
+  return { label: "시작 단계", className: "bg-field text-sub" };
+}
+
 export default function MyPage() {
   const navigate = useNavigate();
-  const { items, summary, points, aiPass, communityPosts, showToast, resetAll } =
-    useApp();
+  const {
+    items,
+    summary,
+    points,
+    aiPass,
+    communityPosts,
+    showToast,
+    resetAll,
+    favoriteVendorIds,
+    recentlyViewedVendorIds,
+    scrappedPostIds,
+  } = useApp();
   const [notifyOn, setNotifyOn] = useState(true);
 
   const dday = formatDday(daysUntilWedding());
   const percent = progressPercent(summary);
+  const level = prepLevel(percent);
 
   const registeredVendors = useMemo(
     () => items.filter((it) => it.vendor?.vendorName),
@@ -53,6 +86,50 @@ export default function MyPage() {
         .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp)),
     [communityPosts],
   );
+
+  // 활동 통계: 글 수 / 댓글 수 / 받은 좋아요 / 찜한 업체
+  const stats = useMemo(() => {
+    const postCount = myPosts.length;
+    const likesReceived = myPosts.reduce((acc, p) => acc + p.likeCount, 0);
+    const commentCount = communityPosts.reduce(
+      (acc, p) =>
+        acc + p.comments.filter((c) => c.author === MY_NICKNAME).length,
+      0,
+    );
+    return {
+      postCount,
+      commentCount,
+      likesReceived,
+      favoriteCount: favoriteVendorIds.length,
+    };
+  }, [myPosts, communityPosts, favoriteVendorIds.length]);
+
+  const favoriteVendors = useMemo(
+    () =>
+      favoriteVendorIds
+        .map((id) => vendorById(id))
+        .filter((v): v is VendorSummary => Boolean(v)),
+    [favoriteVendorIds],
+  );
+
+  const recentlyViewedVendors = useMemo(
+    () =>
+      recentlyViewedVendorIds
+        .map((id) => vendorById(id))
+        .filter((v): v is VendorSummary => Boolean(v)),
+    [recentlyViewedVendorIds],
+  );
+
+  const scrappedPosts = useMemo(
+    () =>
+      communityPosts
+        .filter((p) => scrappedPostIds.includes(p.id))
+        .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp)),
+    [communityPosts, scrappedPostIds],
+  );
+
+  const goVendor = (vendor: VendorSummary) =>
+    navigate(`/vendors/${encodeURIComponent(vendor.category)}`);
 
   return (
     <div className="min-h-dvh bg-page pb-24">
@@ -95,8 +172,18 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* 3. 포인트 / AI 패스 카드 */}
-        <section className="anim-rise mt-6" style={stagger(2)}>
+        {/* 3. 활동 통계 요약 */}
+        <section className="anim-rise mt-3" style={stagger(2)}>
+          <div className="grid grid-cols-4 divide-x divide-line rounded-2xl border border-line bg-white py-3.5">
+            <StatCell label="글" value={stats.postCount} />
+            <StatCell label="댓글" value={stats.commentCount} />
+            <StatCell label="받은 좋아요" value={stats.likesReceived} />
+            <StatCell label="찜한 업체" value={stats.favoriteCount} />
+          </div>
+        </section>
+
+        {/* 4. 포인트 / AI 패스 카드 */}
+        <section className="anim-rise mt-6" style={stagger(3)}>
           <div className="rounded-2xl border border-line bg-white p-4">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -140,12 +227,12 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* 4. 웨딩 준비 현황 카드 */}
+        {/* 5. 웨딩 준비 현황 카드 (등급 뱃지 포함) */}
         <button
           type="button"
           onClick={() => navigate("/planner")}
           className="anim-rise mt-6 block w-full text-left"
-          style={stagger(3)}
+          style={stagger(4)}
         >
           <div className="flex items-center gap-4 rounded-2xl border border-line bg-white p-4 transition active:scale-[0.99] active:bg-black/[0.02]">
             <ProgressRing
@@ -158,7 +245,14 @@ export default function MyPage() {
               </span>
             </ProgressRing>
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold">웨딩 준비 현황</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[14px] font-bold">웨딩 준비 현황</p>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${level.className}`}
+                >
+                  {level.label}
+                </span>
+              </div>
               <p className="mt-0.5 text-[12px] text-sub">
                 {summary.doneCount}/{summary.totalCount} 완료 · {dday}
               </p>
@@ -167,8 +261,62 @@ export default function MyPage() {
           </div>
         </button>
 
-        {/* 5. 등록한 업체 */}
-        <section className="anim-rise mt-6" style={stagger(4)}>
+        {/* 6. 찜한 업체 */}
+        <section className="anim-rise mt-6" style={stagger(5)}>
+          <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+            <Heart size={16} className="text-brand" />
+            찜한 업체
+            {favoriteVendors.length > 0 && (
+              <span className="text-[13px] font-medium text-faint">
+                {favoriteVendors.length}
+              </span>
+            )}
+          </h2>
+          {favoriteVendors.length > 0 ? (
+            <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5">
+              {favoriteVendors.map((vendor) => (
+                <VendorTile
+                  key={vendor.id}
+                  vendor={vendor}
+                  onClick={() => goVendor(vendor)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-line bg-white p-5 text-center">
+              <p className="text-[13px] text-sub">아직 찜한 업체가 없어요</p>
+              <button
+                type="button"
+                onClick={() => navigate("/services")}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-tint px-4 text-[13px] font-bold text-brand transition active:scale-95"
+              >
+                업체 둘러보기
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* 7. 최근 본 업체 (비어있으면 섹션 자체를 숨김) */}
+        {recentlyViewedVendors.length > 0 && (
+          <section className="anim-rise mt-6" style={stagger(6)}>
+            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+              <Clock size={16} className="text-brand" />
+              최근 본 업체
+            </h2>
+            <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5">
+              {recentlyViewedVendors.map((vendor) => (
+                <VendorTile
+                  key={vendor.id}
+                  vendor={vendor}
+                  onClick={() => goVendor(vendor)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 8. 등록한 업체 */}
+        <section className="anim-rise mt-6" style={stagger(7)}>
           <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
             <Building2 size={16} className="text-brand" />
             등록한 업체
@@ -210,8 +358,63 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* 6. 내 커뮤니티 활동 */}
-        <section className="anim-rise mt-6" style={stagger(5)}>
+        {/* 9. 스크랩한 글 */}
+        <section className="anim-rise mt-6" style={stagger(8)}>
+          <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+            <Bookmark size={16} className="text-brand" />
+            스크랩한 글
+            {scrappedPosts.length > 0 && (
+              <span className="text-[13px] font-medium text-faint">
+                {scrappedPosts.length}
+              </span>
+            )}
+          </h2>
+          {scrappedPosts.length > 0 ? (
+            <div className="flex flex-col gap-2.5">
+              {scrappedPosts.slice(0, 5).map((post) => (
+                <button
+                  key={post.id}
+                  type="button"
+                  onClick={() => navigate(`/community/${post.id}`)}
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                >
+                  <span className="shrink-0 rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                    {post.category}
+                  </span>
+                  <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">
+                    {post.title}
+                  </p>
+                  <ChevronRight size={15} className="shrink-0 text-faint" />
+                </button>
+              ))}
+              {scrappedPosts.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/community")}
+                  className="text-center text-[12px] font-medium text-sub"
+                >
+                  스크랩 {scrappedPosts.length}개 전체보기
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-line bg-white p-5 text-center">
+              <p className="text-[13px] text-sub">
+                아직 스크랩한 글이 없어요
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/community")}
+                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-tint px-4 text-[13px] font-bold text-brand transition active:scale-95"
+              >
+                커뮤니티 둘러보기
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* 10. 내 커뮤니티 활동 */}
+        <section className="anim-rise mt-6" style={stagger(9)}>
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-[16px] font-bold">
               <Users size={16} className="text-brand" />
@@ -255,8 +458,8 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* 7. 설정 리스트 */}
-        <section className="anim-rise mt-6" style={stagger(6)}>
+        {/* 11. 설정 리스트 */}
+        <section className="anim-rise mt-6" style={stagger(10)}>
           <h2 className="mb-3 text-[16px] font-bold">설정</h2>
           <div className="overflow-hidden rounded-2xl border border-line bg-white">
             <div className="flex items-center justify-between px-4 py-3.5">
@@ -352,6 +555,52 @@ export default function MyPage() {
       <FloatingChat offsetClass="bottom-24" />
       <BottomNav />
     </div>
+  );
+}
+
+function StatCell({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-[15px] font-extrabold text-ink">{value}</span>
+      <span className="text-[11px] text-faint">{label}</span>
+    </div>
+  );
+}
+
+// 찜한 업체 / 최근 본 업체 가로 스크롤 컴팩트 카드
+function VendorTile({
+  vendor,
+  onClick,
+}: {
+  vendor: VendorSummary;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-[132px] shrink-0 flex-col gap-1.5 rounded-2xl border border-line bg-white p-2.5 text-left transition active:scale-[0.97] active:bg-black/[0.02]"
+    >
+      <VendorThumb
+        category={vendor.category}
+        thumbnailUrl={vendor.thumbnailUrl}
+        className="h-[88px] w-full rounded-xl"
+        iconSize={26}
+      />
+      <div className="min-w-0">
+        <p className="truncate text-[12.5px] font-bold">{vendor.name}</p>
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] text-sub">
+          <Star size={10} className="fill-[#FFC107] text-[#FFC107]" />
+          <span className="font-semibold text-ink">
+            {vendor.rating.toFixed(1)}
+          </span>
+          <span className="flex min-w-0 items-center gap-0.5 truncate text-faint">
+            <MapPin size={9} className="shrink-0" />
+            <span className="truncate">{vendor.region}</span>
+          </span>
+        </div>
+      </div>
+    </button>
   );
 }
 

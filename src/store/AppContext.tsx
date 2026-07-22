@@ -39,6 +39,9 @@ interface PersistedState {
   aiPass: boolean;
   communityPosts: CommunityPost[];
   likedPostIds: string[];
+  scrappedPostIds: string[];
+  favoriteVendorIds: string[];
+  recentlyViewedVendorIds: string[];
 }
 
 function dropBlobUrl(url?: string): string | undefined {
@@ -106,6 +109,15 @@ function loadPersisted(): PersistedState | null {
       likedPostIds: Array.isArray(parsed.likedPostIds)
         ? parsed.likedPostIds
         : [],
+      scrappedPostIds: Array.isArray(parsed.scrappedPostIds)
+        ? parsed.scrappedPostIds
+        : [],
+      favoriteVendorIds: Array.isArray(parsed.favoriteVendorIds)
+        ? parsed.favoriteVendorIds
+        : [],
+      recentlyViewedVendorIds: Array.isArray(parsed.recentlyViewedVendorIds)
+        ? parsed.recentlyViewedVendorIds
+        : [],
     };
   } catch {
     return null;
@@ -144,13 +156,27 @@ interface AppContextValue {
   /** 내가 좋아요 누른 게시글 id 목록 — 표시 좋아요 수는 post.likeCount + (좋아요 여부) */
   likedPostIds: string[];
   toggleLike: (postId: string) => void;
+  /** 내가 스크랩한 게시글 id 목록 — 표시 스크랩 수는 post.scrapCount + (스크랩 여부) */
+  scrappedPostIds: string[];
+  toggleScrap: (postId: string) => void;
   addCommunityPost: (
-    post: Omit<CommunityPost, "id" | "likeCount" | "comments" | "timestamp">,
+    post: Omit<
+      CommunityPost,
+      "id" | "likeCount" | "scrapCount" | "viewCount" | "comments" | "timestamp"
+    >,
   ) => string;
   addComment: (postId: string, text: string) => void;
+  /** 내가 찜한 업체 id 목록 */
+  favoriteVendorIds: string[];
+  toggleFavoriteVendor: (vendorId: string) => void;
+  /** 최근 본 업체 id 목록 — 최신순, 최대 12개 */
+  recentlyViewedVendorIds: string[];
+  trackVendorView: (vendorId: string) => void;
   /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
   resetAll: () => void;
 }
+
+const MAX_RECENTLY_VIEWED = 12;
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -179,6 +205,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [likedPostIds, setLikedPostIds] = useState<string[]>(
     () => loadPersisted()?.likedPostIds ?? [],
   );
+  const [scrappedPostIds, setScrappedPostIds] = useState<string[]>(
+    () => loadPersisted()?.scrappedPostIds ?? [],
+  );
+  const [favoriteVendorIds, setFavoriteVendorIds] = useState<string[]>(
+    () => loadPersisted()?.favoriteVendorIds ?? [],
+  );
+  const [recentlyViewedVendorIds, setRecentlyViewedVendorIds] = useState<
+    string[]
+  >(() => loadPersisted()?.recentlyViewedVendorIds ?? []);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -195,6 +230,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           aiPass,
           communityPosts,
           likedPostIds,
+          scrappedPostIds,
+          favoriteVendorIds,
+          recentlyViewedVendorIds,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
@@ -211,6 +249,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     aiPass,
     communityPosts,
     likedPostIds,
+    scrappedPostIds,
+    favoriteVendorIds,
+    recentlyViewedVendorIds,
   ]);
 
   const toggleItem = useCallback((id: string) => {
@@ -291,7 +332,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addCommunityPost = useCallback(
     (
-      post: Omit<CommunityPost, "id" | "likeCount" | "comments" | "timestamp">,
+      post: Omit<
+        CommunityPost,
+        | "id"
+        | "likeCount"
+        | "scrapCount"
+        | "viewCount"
+        | "comments"
+        | "timestamp"
+      >,
     ) => {
       const id = uid();
       setCommunityPosts((prev) => [
@@ -299,6 +348,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...post,
           id,
           likeCount: 0,
+          scrapCount: 0,
+          viewCount: 0,
           comments: [],
           timestamp: new Date().toISOString(),
         },
@@ -308,6 +359,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const toggleScrap = useCallback((postId: string) => {
+    setScrappedPostIds((prev) =>
+      prev.includes(postId)
+        ? prev.filter((id) => id !== postId)
+        : [...prev, postId],
+    );
+  }, []);
+
+  const toggleFavoriteVendor = useCallback((vendorId: string) => {
+    setFavoriteVendorIds((prev) =>
+      prev.includes(vendorId)
+        ? prev.filter((id) => id !== vendorId)
+        : [...prev, vendorId],
+    );
+  }, []);
+
+  const trackVendorView = useCallback((vendorId: string) => {
+    setRecentlyViewedVendorIds((prev) =>
+      [vendorId, ...prev.filter((id) => id !== vendorId)].slice(
+        0,
+        MAX_RECENTLY_VIEWED,
+      ),
+    );
+  }, []);
 
   const addComment = useCallback((postId: string, text: string) => {
     const trimmed = text.trim();
@@ -345,6 +421,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAiPass(false);
     setCommunityPosts(SEED_POSTS);
     setLikedPostIds([]);
+    setScrappedPostIds([]);
+    setFavoriteVendorIds([]);
+    setRecentlyViewedVendorIds([]);
     showToast("베타 데이터를 초기 상태로 되돌렸어요");
   }, [showToast]);
 
@@ -373,8 +452,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       communityPosts,
       likedPostIds,
       toggleLike,
+      scrappedPostIds,
+      toggleScrap,
       addCommunityPost,
       addComment,
+      favoriteVendorIds,
+      toggleFavoriteVendor,
+      recentlyViewedVendorIds,
+      trackVendorView,
       resetAll,
     }),
     [
@@ -399,8 +484,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       communityPosts,
       likedPostIds,
       toggleLike,
+      scrappedPostIds,
+      toggleScrap,
       addCommunityPost,
       addComment,
+      favoriteVendorIds,
+      toggleFavoriteVendor,
+      recentlyViewedVendorIds,
+      trackVendorView,
       resetAll,
     ],
   );

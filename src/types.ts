@@ -45,6 +45,28 @@ export const VENDOR_CATEGORIES: VendorCategory[] = [
   "사회자",
 ];
 
+// 지역 — 업체 필터/검색용 (전체서비스 이커머스 지역 필터, 기획서 범위 밖 자체 설계)
+export type Region =
+  | "서울"
+  | "경기·인천"
+  | "대전·충청"
+  | "대구·경북"
+  | "부산·울산·경남"
+  | "광주·전남"
+  | "강원"
+  | "제주";
+
+export const VENDOR_REGIONS: Region[] = [
+  "서울",
+  "경기·인천",
+  "대전·충청",
+  "대구·경북",
+  "부산·울산·경남",
+  "광주·전남",
+  "강원",
+  "제주",
+];
+
 export type VendorStatus = "상담중" | "계약완료" | "완료(업체 미등록)";
 
 // 체크리스트에 등록된 업체
@@ -82,8 +104,11 @@ export interface VendorSummary {
   id: string;
   name: string;
   category: VendorCategory;
+  region: Region;
   thumbnailUrl: string; // 빈 문자열이면 플레이스홀더 렌더링
   priceLabel: string;
+  /** priceLabel의 숫자값(만원 단위) — 가격순 정렬용. 가격 비공개 업체는 큰 값으로 둬서 오름차순 정렬 시 맨 뒤로 */
+  priceFrom: number;
   rating: number;
   reviewCount: number;
   moodTags: string[];
@@ -164,8 +189,16 @@ export interface CommunityPost {
   imageUrls: string[];
   /** 후기글에서 업체를 태그한 경우 */
   vendorTag?: { vendorId: string; vendorName: string; category: VendorCategory };
+  /** 글이 다루는 지역(선택) — 커뮤니티 지역 뱃지·필터용 */
+  region?: Region;
+  /** 자유 해시태그 (예: ["정찰제", "가성비"]) */
+  tags: string[];
   /** 시드 데이터 기준 좋아요 수 (내 좋아요 여부는 AppContext의 likedPostIds로 별도 관리) */
   likeCount: number;
+  /** 시드 데이터 기준 스크랩 수 (내 스크랩 여부는 AppContext의 scrappedPostIds로 별도 관리) */
+  scrapCount: number;
+  /** 조회수 — mock 고정값, 실시간 증가 없음 */
+  viewCount: number;
   comments: CommunityComment[];
   timestamp: string;
 }
