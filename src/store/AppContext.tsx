@@ -13,6 +13,8 @@ import type {
   ChecklistItem,
   CommunityComment,
   CommunityPost,
+  ConsultationBooking,
+  ProductOrder,
   ProgressSummary,
   RegisteredVendor,
   VendorChatMessage,
@@ -42,6 +44,8 @@ interface PersistedState {
   scrappedPostIds: string[];
   favoriteVendorIds: string[];
   recentlyViewedVendorIds: string[];
+  consultations: ConsultationBooking[];
+  orders: ProductOrder[];
 }
 
 function dropBlobUrl(url?: string): string | undefined {
@@ -118,6 +122,10 @@ function loadPersisted(): PersistedState | null {
       recentlyViewedVendorIds: Array.isArray(parsed.recentlyViewedVendorIds)
         ? parsed.recentlyViewedVendorIds
         : [],
+      consultations: Array.isArray(parsed.consultations)
+        ? parsed.consultations
+        : [],
+      orders: Array.isArray(parsed.orders) ? parsed.orders : [],
     };
   } catch {
     return null;
@@ -172,6 +180,14 @@ interface AppContextValue {
   /** 최근 본 업체 id 목록 — 최신순, 최대 12개 */
   recentlyViewedVendorIds: string[];
   trackVendorView: (vendorId: string) => void;
+  /** 상담 예약 내역 (mock — 실제 예약 연동 없음) */
+  consultations: ConsultationBooking[];
+  addConsultation: (
+    booking: Omit<ConsultationBooking, "id" | "status" | "createdAt">,
+  ) => void;
+  /** 앱내 결제 주문 내역 (mock — 실제 청구 없음) */
+  orders: ProductOrder[];
+  addOrder: (order: Omit<ProductOrder, "id" | "status" | "createdAt">) => void;
   /** 저장된 베타 데이터를 지우고 초기 상태로 되돌림 */
   resetAll: () => void;
 }
@@ -214,6 +230,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [recentlyViewedVendorIds, setRecentlyViewedVendorIds] = useState<
     string[]
   >(() => loadPersisted()?.recentlyViewedVendorIds ?? []);
+  const [consultations, setConsultations] = useState<ConsultationBooking[]>(
+    () => loadPersisted()?.consultations ?? [],
+  );
+  const [orders, setOrders] = useState<ProductOrder[]>(
+    () => loadPersisted()?.orders ?? [],
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -233,6 +255,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           scrappedPostIds,
           favoriteVendorIds,
           recentlyViewedVendorIds,
+          consultations,
+          orders,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
@@ -252,6 +276,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     scrappedPostIds,
     favoriteVendorIds,
     recentlyViewedVendorIds,
+    consultations,
+    orders,
   ]);
 
   const toggleItem = useCallback((id: string) => {
@@ -385,6 +411,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const addConsultation = useCallback(
+    (booking: Omit<ConsultationBooking, "id" | "status" | "createdAt">) => {
+      setConsultations((prev) => [
+        {
+          ...booking,
+          id: uid(),
+          status: "대기중",
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    },
+    [],
+  );
+
+  const addOrder = useCallback(
+    (order: Omit<ProductOrder, "id" | "status" | "createdAt">) => {
+      setOrders((prev) => [
+        {
+          ...order,
+          id: uid(),
+          status: "결제완료",
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    },
+    [],
+  );
+
   const addComment = useCallback((postId: string, text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -424,6 +480,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setScrappedPostIds([]);
     setFavoriteVendorIds([]);
     setRecentlyViewedVendorIds([]);
+    setConsultations([]);
+    setOrders([]);
     showToast("베타 데이터를 초기 상태로 되돌렸어요");
   }, [showToast]);
 
@@ -460,6 +518,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleFavoriteVendor,
       recentlyViewedVendorIds,
       trackVendorView,
+      consultations,
+      addConsultation,
+      orders,
+      addOrder,
       resetAll,
     }),
     [
@@ -492,6 +554,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleFavoriteVendor,
       recentlyViewedVendorIds,
       trackVendorView,
+      consultations,
+      addConsultation,
+      orders,
+      addOrder,
       resetAll,
     ],
   );

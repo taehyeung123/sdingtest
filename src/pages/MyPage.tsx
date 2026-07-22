@@ -4,9 +4,11 @@ import {
   Bell,
   Bookmark,
   Building2,
+  CalendarCheck,
   ChevronRight,
   Clock,
   Coins,
+  CreditCard,
   FileText,
   Heart,
   HelpCircle,
@@ -40,6 +42,18 @@ import {
 // 섹션 순차 등장 딜레이 (CSS 애니메이션 — rAF가 멈춰도 콘텐츠는 항상 보임)
 const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 
+// "2026-07-25" / "14:00" → "7/25 14:00"
+function slotLabel(slot: { date: string; time: string }): string {
+  const [, m, d] = slot.date.split("-");
+  return `${Number(m)}/${Number(d)} ${slot.time}`;
+}
+
+// ISO → "7/22"
+function shortDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 // 웨딩 준비 진행률에 따른 등급 뱃지 (게이미피케이션)
 function prepLevel(percent: number): { label: string; className: string } {
   if (percent >= 100) {
@@ -67,6 +81,8 @@ export default function MyPage() {
     favoriteVendorIds,
     recentlyViewedVendorIds,
     scrappedPostIds,
+    consultations,
+    orders,
   } = useApp();
   const [notifyOn, setNotifyOn] = useState(true);
 
@@ -357,6 +373,98 @@ export default function MyPage() {
             </div>
           )}
         </section>
+
+        {/* 8-1. 상담 예약 내역 (있을 때만) */}
+        {consultations.length > 0 && (
+          <section className="anim-rise mt-6" style={stagger(7)}>
+            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+              <CalendarCheck size={16} className="text-brand" />
+              상담 예약 내역
+              <span className="text-[13px] font-medium text-faint">
+                {consultations.length}
+              </span>
+            </h2>
+            <div className="flex flex-col gap-2.5">
+              {consultations.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() =>
+                    navigate(`/vendors/${encodeURIComponent(c.category)}/${c.vendorId}`)
+                  }
+                  className="rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
+                      {c.vendorName}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                        c.status === "확정"
+                          ? "bg-success/10 text-success"
+                          : "bg-consult/10 text-consult"
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] text-sub">
+                    희망 시간: {c.slots.map(slotLabel).join(" · ")}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-faint">
+                    {c.category} · {shortDate(c.createdAt)} 신청
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 8-2. 결제 내역 (있을 때만) */}
+        {orders.length > 0 && (
+          <section className="anim-rise mt-6" style={stagger(7)}>
+            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+              <CreditCard size={16} className="text-brand" />
+              결제 내역
+              <span className="text-[13px] font-medium text-faint">
+                {orders.length}
+              </span>
+            </h2>
+            <div className="flex flex-col gap-2.5">
+              {orders.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() =>
+                    navigate(`/vendors/${encodeURIComponent(o.category)}/${o.vendorId}`)
+                  }
+                  className="rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
+                      {o.productName}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-bold text-success">
+                      {o.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] text-sub">
+                    {o.vendorName}
+                    {o.optionNames.length > 0 && ` · 옵션 ${o.optionNames.length}개`}
+                  </p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-[11px] text-faint">
+                      {shortDate(o.createdAt)} 결제
+                    </span>
+                    <span className="text-[14px] font-extrabold text-ink">
+                      {o.totalPrice.toLocaleString()}원
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 9. 스크랩한 글 */}
         <section className="anim-rise mt-6" style={stagger(8)}>

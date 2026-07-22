@@ -153,6 +153,35 @@ export interface VendorProduct {
   priceLabel?: string;
 }
 
+// 상담 예약 (업체 상세 → 날짜·시간 최대 3개 선택, mock — 실제 예약 연동 없음)
+export interface ConsultationSlot {
+  date: string; // "2026-07-25"
+  time: string; // "14:00"
+}
+
+export interface ConsultationBooking {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  category: VendorCategory;
+  slots: ConsultationSlot[];
+  status: "대기중" | "확정";
+  createdAt: string;
+}
+
+// 앱내 결제 주문 (업체 상세 → 상품+옵션 선택, mock — 실제 청구 없음)
+export interface ProductOrder {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  category: VendorCategory;
+  productName: string;
+  optionNames: string[];
+  totalPrice: number; // 원
+  status: "결제완료";
+  createdAt: string;
+}
+
 // 디스플레이 광고 (홈/전체서비스/커뮤니티 노출, 전부 mock — 실제 광고 연동 없음)
 export interface AdBanner {
   id: string;
