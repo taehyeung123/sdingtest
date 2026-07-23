@@ -3,10 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   BadgeCheck,
   Bell,
+  CalendarCheck,
   CalendarHeart,
   ChevronRight,
   ClipboardCheck,
   Coins,
+  CreditCard,
   Heart,
   ListChecks,
   MessageCircle,
@@ -29,7 +31,7 @@ import {
   progressPercent,
   todoDdayLabel,
 } from "../lib/wedding";
-import type { ChecklistGroup } from "../types";
+import type { ChecklistGroup, ConsultationSlot } from "../types";
 
 // 미니 progress bar로 개별 노출하는 주요 그룹 — 나머지는 "기타"로 합산
 const MAIN_GROUPS: ChecklistGroup[] = [
@@ -66,9 +68,20 @@ const SUGGESTED_QUESTIONS = [
   "스드메가 뭐예요?",
 ] as const;
 
+// 상담 예약 슬롯 요약: 최대 2개까지 "7/25 14:00" 형태로 붙이고, 더 있으면 "외 n건"
+function slotsSummary(slots: ConsultationSlot[]): string {
+  const parts = slots.slice(0, 2).map((s) => {
+    const [, month, day] = s.date.split("-");
+    return `${Number(month)}/${Number(day)} ${s.time}`;
+  });
+  const extra = slots.length - parts.length;
+  return extra > 0 ? `${parts.join(" · ")} 외 ${extra}건` : parts.join(" · ");
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { items, summary, showToast, resetAll, points, aiPass } = useApp();
+  const { items, summary, showToast, resetAll, points, aiPass, consultations, orders } =
+    useApp();
 
   const dday = formatDday(daysUntilWedding());
   const percent = progressPercent(summary);
@@ -89,11 +102,30 @@ export default function Dashboard() {
     return rows;
   }, [summary]);
 
+  // 다가오는 상담 예약 — 대기중/확정만, 최신 신청순 최대 3개
+  const upcomingConsultations = useMemo(
+    () =>
+      consultations
+        .filter((c) => c.status === "대기중" || c.status === "확정")
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        .slice(0, 3),
+    [consultations],
+  );
+
+  // 최근 결제 — 최신순 최대 2건
+  const recentOrders = useMemo(
+    () =>
+      [...orders]
+        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        .slice(0, 2),
+    [orders],
+  );
+
   return (
-    <div className="min-h-dvh bg-white pb-24">
+    <div className="min-h-dvh bg-page pb-24">
       <div>
         {/* 1. 헤더 */}
-        <header className="anim-rise px-5 pt-4" style={stagger(0)}>
+        <header className="anim-rise bg-white px-5 pt-4 pb-3" style={stagger(0)}>
           <div className="flex items-center justify-between">
             <Logo className="h-[20px]" />
             <div className="flex items-center gap-1">
@@ -126,13 +158,13 @@ export default function Dashboard() {
           </h1>
         </header>
 
-        {/* 2. D-day 배너 */}
+        {/* 2. D-day 배너 — 사령탑 히어로: 하단에 상담·결제 미니 스탯을 붙여 정보 밀도를 높인다 */}
         <section className="anim-rise mt-4 px-5" style={stagger(1)}>
           <div className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white">
             <CalendarHeart
               size={96}
               strokeWidth={1.4}
-              className="absolute -right-4 -bottom-7 text-white/[0.07]"
+              className="absolute -right-4 -top-6 text-white/[0.07]"
             />
             <p className="flex items-center gap-1.5 text-[13px] font-semibold text-white/85">
               {USER_NAME}
@@ -146,6 +178,27 @@ export default function Dashboard() {
             <p className="mt-2.5 text-[12px] text-white/60">
               {formatWeddingDate()}
             </p>
+
+            <div className="relative mt-4 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 pt-3">
+              <div>
+                <p className="text-[15px] font-extrabold leading-none">
+                  {percent}%
+                </p>
+                <p className="mt-1 text-[11px] text-white/55">체크리스트</p>
+              </div>
+              <div className="pl-3">
+                <p className="text-[15px] font-extrabold leading-none">
+                  {consultations.length}건
+                </p>
+                <p className="mt-1 text-[11px] text-white/55">예정 상담</p>
+              </div>
+              <div className="pl-3">
+                <p className="text-[15px] font-extrabold leading-none">
+                  {orders.length}건
+                </p>
+                <p className="mt-1 text-[11px] text-white/55">결제 완료</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -214,8 +267,121 @@ export default function Dashboard() {
           </Link>
         </section>
 
+        {/* 3-1. 다가오는 상담 예약 (없으면 섹션 자체를 숨김) */}
+        {upcomingConsultations.length > 0 && (
+          <section className="anim-rise mt-5 px-5" style={stagger(3)}>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-[16px] font-bold">
+                <CalendarCheck size={16} className="text-brand" />
+                다가오는 상담 예약
+              </h2>
+              <Link
+                to="/my"
+                className="flex items-center gap-0.5 text-[13px] font-medium text-sub"
+              >
+                전체보기
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {upcomingConsultations.map((c) => {
+                const Icon = categoryIcon(c.category);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/vendors/${encodeURIComponent(c.category)}/${c.vendorId}`,
+                      )
+                    }
+                    className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint text-brand">
+                      <Icon size={18} strokeWidth={1.9} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[14px] font-semibold">
+                          {c.vendorName}
+                        </p>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            c.status === "확정"
+                              ? "bg-success/10 text-success"
+                              : "bg-consult/10 text-consult"
+                          }`}
+                        >
+                          {c.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-[12px] text-sub">
+                        {c.category} · {slotsSummary(c.slots)}
+                      </p>
+                    </div>
+                    <ChevronRight size={18} className="shrink-0 text-faint" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 3-2. 최근 결제 (없으면 섹션 자체를 숨김) */}
+        {recentOrders.length > 0 && (
+          <section className="anim-rise mt-5 px-5" style={stagger(3)}>
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-1.5 text-[16px] font-bold">
+                <CreditCard size={16} className="text-brand" />
+                최근 결제
+              </h2>
+              <Link
+                to="/my"
+                className="flex items-center gap-0.5 text-[13px] font-medium text-sub"
+              >
+                전체보기
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {recentOrders.map((o) => {
+                const Icon = categoryIcon(o.category);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/vendors/${encodeURIComponent(o.category)}/${o.vendorId}`,
+                      )
+                    }
+                    className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint text-brand">
+                      <Icon size={18} strokeWidth={1.9} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-semibold">
+                        {o.productName}
+                      </p>
+                      <p className="mt-1 truncate text-[12px] text-sub">
+                        {o.vendorName}
+                        {o.optionNames.length > 0 &&
+                          ` · 옵션 ${o.optionNames.length}개`}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[14px] font-extrabold text-ink">
+                      {o.totalPrice.toLocaleString()}원
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* 4. AI 배너 캐러셀 */}
-        <section className="anim-rise mt-5" style={stagger(3)}>
+        <section className="anim-rise mt-6" style={stagger(4)}>
           <div className="mb-3 flex items-center gap-1.5 px-5">
             <Sparkles size={16} className="text-brand" />
             <h2 className="text-[16px] font-bold">AI로 미리 보는 우리 결혼식</h2>
@@ -254,7 +420,7 @@ export default function Dashboard() {
         </section>
 
         {/* 5. 다음 할 일 */}
-        <section className="anim-rise mt-6 px-5" style={stagger(4)}>
+        <section className="anim-rise mt-6 px-5" style={stagger(5)}>
           <div className="flex items-center justify-between">
             <h2 className="text-[16px] font-bold">다음 할 일</h2>
             <Link
@@ -311,8 +477,8 @@ export default function Dashboard() {
         </section>
 
         {/* 6. AI 플래너 허브 카드 — 추천 질문 탭 시 채팅방에서 바로 전송 */}
-        <section className="anim-rise mt-6 px-5" style={stagger(5)}>
-          <div className="rounded-2xl bg-tint p-4">
+        <section className="anim-rise mt-6 px-5" style={stagger(6)}>
+          <div className="rounded-2xl border border-line bg-white p-4">
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white">
                 <Sparkles size={20} />
@@ -332,7 +498,7 @@ export default function Dashboard() {
                   key={q}
                   type="button"
                   onClick={() => navigate("/chat", { state: { ask: q } })}
-                  className="rounded-full border border-brand/25 bg-white px-3 py-1.5 text-[12px] font-medium transition active:bg-brand/10"
+                  className="rounded-full border border-line px-3 py-1.5 text-[12px] font-medium text-sub transition active:bg-black/[0.02]"
                 >
                   {q}
                 </button>
@@ -350,7 +516,7 @@ export default function Dashboard() {
         </section>
 
         {/* 베타 유틸: 저장된 데이터 초기화 */}
-        <section className="anim-rise mt-8 px-5 text-center" style={stagger(6)}>
+        <section className="anim-rise mt-8 px-5 text-center" style={stagger(7)}>
           <button
             type="button"
             onClick={() => {

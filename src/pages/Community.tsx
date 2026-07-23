@@ -84,7 +84,79 @@ function HighlightCard({
   );
 }
 
-function PostCard({
+function PostMeta({
+  post,
+  showAuthor = true,
+}: {
+  post: CommunityPost;
+  showAuthor?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
+        {post.category}
+      </span>
+      {post.region && (
+        <span className="flex items-center gap-0.5 rounded-md bg-field px-1.5 py-0.5 text-[10px] font-semibold text-sub">
+          <MapPin size={10} strokeWidth={2} />
+          {post.region}
+        </span>
+      )}
+      {showAuthor && (
+        <span className="truncate text-[11px] text-faint">
+          {post.author} · {post.authorBadge}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PostMetrics({
+  post,
+  liked,
+  scrapped,
+  showTime = true,
+}: {
+  post: CommunityPost;
+  liked: boolean;
+  scrapped: boolean;
+  showTime?: boolean;
+}) {
+  const likeCount = post.likeCount + (liked ? 1 : 0);
+  const scrapCount = post.scrapCount + (scrapped ? 1 : 0);
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center gap-2.5 text-[12px] text-faint">
+      <span className="flex items-center gap-1">
+        <Heart
+          size={13}
+          className={liked ? "fill-brand text-brand" : ""}
+          strokeWidth={1.9}
+        />
+        {likeCount}
+      </span>
+      <span className="flex items-center gap-1">
+        <MessageCircle size={13} strokeWidth={1.9} />
+        {post.comments.length}
+      </span>
+      <span className="flex items-center gap-1">
+        <Eye size={13} strokeWidth={1.9} />
+        {post.viewCount.toLocaleString()}
+      </span>
+      <span className="flex items-center gap-1">
+        <Bookmark
+          size={13}
+          className={scrapped ? "fill-brand text-brand" : ""}
+          strokeWidth={1.9}
+        />
+        {scrapCount}
+      </span>
+      {showTime && <span className="ml-auto">{formatTime(post.timestamp)}</span>}
+    </div>
+  );
+}
+
+/** 사진 중심 카드 — 이미지가 있는 글은 큰 대표 사진을 카드 상단에 꽉 채워 보여준다. */
+function PostCardPhoto({
   post,
   liked,
   scrapped,
@@ -95,32 +167,29 @@ function PostCard({
   scrapped: boolean;
   onClick: () => void;
 }) {
-  const likeCount = post.likeCount + (liked ? 1 : 0);
-  const scrapCount = post.scrapCount + (scrapped ? 1 : 0);
-  const thumb = post.imageUrls[0];
   const extraImageCount = post.imageUrls.length - 1;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-start gap-3 rounded-2xl border border-line bg-white p-4 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+      className="block w-full overflow-hidden rounded-2xl border border-line bg-white text-left transition active:scale-[0.99] active:bg-black/[0.02]"
     >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
-            {post.category}
+      <div className="relative aspect-[4/5] w-full bg-field">
+        <img
+          src={post.imageUrls[0]}
+          alt=""
+          className="h-full w-full object-cover"
+        />
+        {extraImageCount > 0 && (
+          <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-bold text-white">
+            +{extraImageCount}
           </span>
-          {post.region && (
-            <span className="flex items-center gap-0.5 rounded-md bg-field px-1.5 py-0.5 text-[10px] font-semibold text-sub">
-              <MapPin size={10} strokeWidth={2} />
-              {post.region}
-            </span>
-          )}
-          <span className="truncate text-[11px] text-faint">
-            {post.author} · {post.authorBadge}
-          </span>
-        </div>
+        )}
+      </div>
+
+      <div className="p-4">
+        <PostMeta post={post} />
 
         <p className="mt-1.5 line-clamp-2 text-[15px] font-bold leading-snug text-ink">
           {post.title}
@@ -131,7 +200,7 @@ function PostCard({
 
         {post.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {post.tags.slice(0, 2).map((tag) => (
+            {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
                 className="text-[11.5px] font-medium text-brand/80"
@@ -142,49 +211,50 @@ function PostCard({
           </div>
         )}
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-2.5 text-[12px] text-faint">
-          <span className="flex items-center gap-1">
-            <Heart
-              size={13}
-              className={liked ? "fill-brand text-brand" : ""}
-              strokeWidth={1.9}
-            />
-            {likeCount}
-          </span>
-          <span className="flex items-center gap-1">
-            <MessageCircle size={13} strokeWidth={1.9} />
-            {post.comments.length}
-          </span>
-          <span className="flex items-center gap-1">
-            <Eye size={13} strokeWidth={1.9} />
-            {post.viewCount.toLocaleString()}
-          </span>
-          <span className="flex items-center gap-1">
-            <Bookmark
-              size={13}
-              className={scrapped ? "fill-brand text-brand" : ""}
-              strokeWidth={1.9}
-            />
-            {scrapCount}
-          </span>
-          <span className="ml-auto">{formatTime(post.timestamp)}</span>
-        </div>
+        <PostMetrics post={post} liked={liked} scrapped={scrapped} />
       </div>
+    </button>
+  );
+}
 
-      {thumb && (
-        <div className="relative h-[72px] w-[72px] shrink-0">
-          <img
-            src={thumb}
-            alt=""
-            className="h-full w-full rounded-xl object-cover"
-          />
-          {extraImageCount > 0 && (
-            <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 text-[10px] font-bold text-white">
-              +{extraImageCount}
+/** 텍스트 중심 컴팩트 카드 — 이미지가 없는 글(고민상담·자유·정보공유 등)에 사용. */
+function PostCardCompact({
+  post,
+  liked,
+  scrapped,
+  onClick,
+}: {
+  post: CommunityPost;
+  liked: boolean;
+  scrapped: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full flex-col rounded-2xl border border-line bg-white p-4 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+    >
+      <PostMeta post={post} />
+
+      <p className="mt-1.5 line-clamp-2 text-[15px] font-bold leading-snug text-ink">
+        {post.title}
+      </p>
+      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-sub">
+        {post.body}
+      </p>
+
+      {post.tags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {post.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className="text-[11.5px] font-medium text-brand/80">
+              #{tag}
             </span>
-          )}
+          ))}
         </div>
       )}
+
+      <PostMetrics post={post} liked={liked} scrapped={scrapped} />
     </button>
   );
 }
@@ -351,15 +421,27 @@ export default function Community() {
           <div className="mt-3 flex flex-col gap-3">
             {filtered.map((post, i) => {
               const showAd = i > 0 && i % 5 === 0;
+              const liked = likedPostIds.includes(post.id);
+              const scrapped = scrappedPostIds.includes(post.id);
+              const onClick = () => navigate(`/community/${post.id}`);
               return (
                 <div key={post.id} className="flex flex-col gap-3">
                   {showAd && <AdNativeCard ad={feedAdForIndex(i / 5 - 1)} />}
-                  <PostCard
-                    post={post}
-                    liked={likedPostIds.includes(post.id)}
-                    scrapped={scrappedPostIds.includes(post.id)}
-                    onClick={() => navigate(`/community/${post.id}`)}
-                  />
+                  {post.imageUrls.length > 0 ? (
+                    <PostCardPhoto
+                      post={post}
+                      liked={liked}
+                      scrapped={scrapped}
+                      onClick={onClick}
+                    />
+                  ) : (
+                    <PostCardCompact
+                      post={post}
+                      liked={liked}
+                      scrapped={scrapped}
+                      onClick={onClick}
+                    />
+                  )}
                 </div>
               );
             })}

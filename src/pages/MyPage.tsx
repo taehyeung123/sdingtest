@@ -1,22 +1,24 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Archive,
   Bell,
-  Bookmark,
   Building2,
   CalendarCheck,
   ChevronRight,
-  Clock,
   Coins,
   CreditCard,
   FileText,
   Heart,
   HelpCircle,
+  Image as ImageIcon,
   LogOut,
   MapPin,
   Megaphone,
   MessageSquareHeart,
+  Pencil,
   RotateCcw,
+  Settings2,
   Sparkles,
   Star,
   Users,
@@ -25,7 +27,7 @@ import BottomNav from "../components/BottomNav";
 import FloatingChat from "../components/FloatingChat";
 import ProgressRing from "../components/ProgressRing";
 import StatusBadge from "../components/StatusBadge";
-import VendorThumb from "../components/VendorThumb";
+import VendorThumb, { categoryIcon } from "../components/VendorThumb";
 import { useApp } from "../store/AppContext";
 import { MY_NICKNAME } from "../data/community";
 import { vendorById } from "../data/vendors";
@@ -68,6 +70,8 @@ function prepLevel(percent: number): { label: string; className: string } {
   return { label: "시작 단계", className: "bg-field text-sub" };
 }
 
+type ArchiveTab = "fav" | "recent" | "scrap";
+
 export default function MyPage() {
   const navigate = useNavigate();
   const {
@@ -85,6 +89,7 @@ export default function MyPage() {
     orders,
   } = useApp();
   const [notifyOn, setNotifyOn] = useState(true);
+  const [archiveTab, setArchiveTab] = useState<ArchiveTab>("fav");
 
   const dday = formatDday(daysUntilWedding());
   const percent = progressPercent(summary);
@@ -147,396 +152,424 @@ export default function MyPage() {
   const goVendor = (vendor: VendorSummary) =>
     navigate(`/vendors/${encodeURIComponent(vendor.category)}/${vendor.id}`);
 
+  const ARCHIVE_TABS: { key: ArchiveTab; label: string; count: number }[] = [
+    { key: "fav", label: "찜한 업체", count: favoriteVendors.length },
+    { key: "recent", label: "최근 본 업체", count: recentlyViewedVendors.length },
+    { key: "scrap", label: "스크랩한 글", count: scrappedPosts.length },
+  ];
+
   return (
     <div className="min-h-dvh bg-page pb-24">
-      {/* 1. 헤더 */}
-      <header className="anim-rise bg-white px-5 pt-4 pb-3" style={stagger(0)}>
-        <h1 className="text-[20px] font-extrabold">마이페이지</h1>
-      </header>
+      {/* 1. 프로필 히어로 — 헤더 텍스트/프로필/통계를 하나의 다크 카드로 통합 */}
+      <section className="anim-rise px-5 pt-5" style={stagger(0)}>
+        <div className="relative overflow-hidden rounded-2xl bg-ink p-5 text-white">
+          <Heart
+            size={108}
+            strokeWidth={1.4}
+            fill="currentColor"
+            className="pointer-events-none absolute -right-5 -top-7 text-white/[0.06]"
+          />
 
-      <div className="mt-6 px-5">
-        {/* 2. 프로필 카드 */}
-        <section className="anim-rise" style={stagger(1)}>
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-[20px] font-extrabold text-white">
-                {USER_NAME.charAt(0)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="truncate text-[16px] font-bold">
-                    {USER_NAME} · {PARTNER_NAME} 예비부부
-                  </p>
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="rounded-md bg-tint px-1.5 py-0.5 text-[11px] font-bold text-brand">
-                    {dday}
-                  </span>
-                  <span className="text-[12px] text-sub">
-                    {formatWeddingDate()}
-                  </span>
-                </div>
+          <button
+            type="button"
+            aria-label="프로필 수정"
+            onClick={() => showToast("프로필 수정은 베타에서 준비 중이에요")}
+            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80 transition active:scale-95"
+          >
+            <Pencil size={14} />
+          </button>
+
+          <p className="relative text-[12px] font-semibold text-white/45">
+            마이페이지
+          </p>
+
+          <div className="relative mt-2.5 flex items-center gap-3">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[20px] font-extrabold text-brand ring-4 ring-white/10">
+              {USER_NAME.charAt(0)}
+            </span>
+            <div className="min-w-0 flex-1 pr-6">
+              <p className="truncate text-[16px] font-bold">
+                {USER_NAME} · {PARTNER_NAME} 예비부부
+              </p>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="rounded-md bg-brand px-1.5 py-0.5 text-[11px] font-bold text-white">
+                  {dday}
+                </span>
+                <span className="text-[12px] text-white/55">
+                  {formatWeddingDate()}
+                </span>
               </div>
             </div>
+          </div>
+
+          <div className="relative mt-4 grid grid-cols-4 divide-x divide-white/[0.12] border-t border-white/[0.12] pt-3.5">
+            <HeroStat label="글" value={stats.postCount} />
+            <HeroStat label="댓글" value={stats.commentCount} />
+            <HeroStat label="받은 좋아요" value={stats.likesReceived} />
+            <HeroStat label="찜한 업체" value={stats.favoriteCount} />
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-6 px-5">
+        {/* 2. 웨딩 준비 현황 + 포인트/AI 패스 — 2분할 요약 카드 */}
+        <section className="anim-rise grid grid-cols-2 gap-3" style={stagger(1)}>
+          <button
+            type="button"
+            onClick={() => navigate("/planner")}
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-line bg-white p-4 text-center transition active:scale-[0.99] active:bg-black/[0.02]"
+          >
+            <ProgressRing
+              value={
+                summary.totalCount > 0
+                  ? summary.doneCount / summary.totalCount
+                  : 0
+              }
+              size={64}
+              stroke={7}
+            >
+              <span className="text-[14px] font-extrabold leading-none">
+                {percent}%
+              </span>
+            </ProgressRing>
+            <div>
+              <span
+                className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-bold ${level.className}`}
+              >
+                {level.label}
+              </span>
+              <p className="mt-1.5 text-[11.5px] text-sub">
+                {summary.doneCount}/{summary.totalCount} 완료
+              </p>
+            </div>
+          </button>
+
+          <div className="flex flex-col rounded-2xl border border-line bg-white p-4">
+            <span className="flex items-center gap-1.5 text-[12.5px] font-semibold text-sub">
+              <Coins size={14} className="text-brand" />
+              보유 포인트
+            </span>
+            <p className="mt-1.5 text-[19px] font-extrabold leading-none">
+              {points.toLocaleString()}
+              <span className="ml-0.5 text-[13px] font-bold text-sub">P</span>
+            </p>
             <button
               type="button"
-              onClick={() => showToast("프로필 수정은 베타에서 준비 중이에요")}
-              className="mt-3.5 h-9 w-full rounded-xl border border-line text-[13px] font-semibold text-sub transition active:bg-black/[0.02]"
+              onClick={() => showToast("포인트 내역은 베타에서 준비 중이에요")}
+              className="mt-1.5 self-start text-[11px] font-medium text-faint underline underline-offset-2"
             >
-              프로필 수정
+              포인트 내역 보기
             </button>
-          </div>
-        </section>
 
-        {/* 3. 활동 통계 요약 */}
-        <section className="anim-rise mt-3" style={stagger(2)}>
-          <div className="grid grid-cols-4 divide-x divide-line rounded-2xl border border-line bg-white py-3.5">
-            <StatCell label="글" value={stats.postCount} />
-            <StatCell label="댓글" value={stats.commentCount} />
-            <StatCell label="받은 좋아요" value={stats.likesReceived} />
-            <StatCell label="찜한 업체" value={stats.favoriteCount} />
-          </div>
-        </section>
-
-        {/* 4. 포인트 / AI 패스 카드 */}
-        <section className="anim-rise mt-6" style={stagger(3)}>
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Coins size={16} className="text-brand" />
-                <span className="text-[15px] font-bold">
-                  {points.toLocaleString()}P
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => showToast("포인트 내역은 베타에서 준비 중이에요")}
-                className="flex items-center gap-0.5 text-[12px] font-medium text-sub"
-              >
-                포인트 내역 보기
-                <ChevronRight size={14} />
-              </button>
-            </div>
-
-            <div className="mt-3 border-t border-line pt-3">
+            <div className="mt-auto pt-3">
               {aiPass ? (
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[13px] font-semibold">
-                    <Sparkles size={15} className="text-brand" />
-                    AI 패스 구독중
-                  </span>
-                  <span className="rounded-full bg-tint px-2 py-1 text-[11px] font-bold text-brand">
-                    무제한 합성
-                  </span>
+                <div className="flex items-center justify-center gap-1.5 rounded-xl bg-tint px-3 py-2 text-[11.5px] font-bold text-brand">
+                  <Sparkles size={13} />
+                  AI 패스 구독중
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={() => navigate("/ai/dress")}
-                  className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand text-[13px] font-bold text-white transition active:scale-[0.98]"
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-brand text-[12.5px] font-bold text-white transition active:scale-[0.98]"
                 >
-                  <Sparkles size={15} />
-                  AI 패스 구독하기
+                  <Sparkles size={13} />
+                  AI 패스 구독
                 </button>
               )}
             </div>
           </div>
         </section>
 
-        {/* 5. 웨딩 준비 현황 카드 (등급 뱃지 포함) */}
-        <button
-          type="button"
-          onClick={() => navigate("/planner")}
-          className="anim-rise mt-6 block w-full text-left"
-          style={stagger(4)}
-        >
-          <div className="flex items-center gap-4 rounded-2xl border border-line bg-white p-4 transition active:scale-[0.99] active:bg-black/[0.02]">
-            <ProgressRing
-              value={summary.totalCount > 0 ? summary.doneCount / summary.totalCount : 0}
-              size={68}
-              stroke={7}
-            >
-              <span className="text-[15px] font-extrabold leading-none">
-                {percent}%
-              </span>
-            </ProgressRing>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[14px] font-bold">웨딩 준비 현황</p>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${level.className}`}
-                >
-                  {level.label}
-                </span>
-              </div>
-              <p className="mt-0.5 text-[12px] text-sub">
-                {summary.doneCount}/{summary.totalCount} 완료 · {dday}
-              </p>
-            </div>
-            <ChevronRight size={18} className="shrink-0 text-faint" />
-          </div>
-        </button>
-
-        {/* 6. 찜한 업체 */}
-        <section className="anim-rise mt-6" style={stagger(5)}>
+        {/* 3. 보관함 — 찜한 업체 / 최근 본 업체 / 스크랩한 글을 세그먼트 탭으로 통합 */}
+        <section className="anim-rise mt-6" style={stagger(2)}>
           <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
-            <Heart size={16} className="text-brand" />
-            찜한 업체
-            {favoriteVendors.length > 0 && (
-              <span className="text-[13px] font-medium text-faint">
-                {favoriteVendors.length}
-              </span>
-            )}
+            <Archive size={16} className="text-brand" />
+            보관함
           </h2>
-          {favoriteVendors.length > 0 ? (
-            <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5">
-              {favoriteVendors.map((vendor) => (
-                <VendorTile
-                  key={vendor.id}
-                  vendor={vendor}
-                  onClick={() => goVendor(vendor)}
-                />
+          <div className="rounded-2xl border border-line bg-white p-4">
+            <div className="flex gap-1 rounded-xl bg-field p-1">
+              {ARCHIVE_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setArchiveTab(tab.key)}
+                  className={`flex-1 rounded-lg py-2 text-[12.5px] font-bold transition ${
+                    archiveTab === tab.key
+                      ? "bg-white text-brand shadow-sm"
+                      : "text-sub"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span
+                      className={`ml-1 text-[11px] font-medium ${
+                        archiveTab === tab.key ? "text-brand/70" : "text-faint"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="rounded-2xl border border-line bg-white p-5 text-center">
-              <p className="text-[13px] text-sub">아직 찜한 업체가 없어요</p>
-              <button
-                type="button"
-                onClick={() => navigate("/services")}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-tint px-4 text-[13px] font-bold text-brand transition active:scale-95"
-              >
-                업체 둘러보기
-              </button>
+
+            <div className="mt-3.5">
+              {archiveTab === "fav" &&
+                (favoriteVendors.length > 0 ? (
+                  <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4">
+                    {favoriteVendors.map((vendor) => (
+                      <VendorTile
+                        key={vendor.id}
+                        vendor={vendor}
+                        onClick={() => goVendor(vendor)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    text="아직 찜한 업체가 없어요"
+                    ctaLabel="업체 둘러보기"
+                    onClick={() => navigate("/services")}
+                  />
+                ))}
+
+              {archiveTab === "recent" &&
+                (recentlyViewedVendors.length > 0 ? (
+                  <div className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4">
+                    {recentlyViewedVendors.map((vendor) => (
+                      <VendorTile
+                        key={vendor.id}
+                        vendor={vendor}
+                        onClick={() => goVendor(vendor)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    text="최근 본 업체가 없어요"
+                    ctaLabel="업체 둘러보기"
+                    onClick={() => navigate("/services")}
+                  />
+                ))}
+
+              {archiveTab === "scrap" &&
+                (scrappedPosts.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {scrappedPosts.slice(0, 5).map((post) => (
+                      <button
+                        key={post.id}
+                        type="button"
+                        onClick={() => navigate(`/community/${post.id}`)}
+                        className="flex items-center gap-3 rounded-xl bg-field p-2.5 text-left transition active:bg-black/[0.03]"
+                      >
+                        <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[10px] font-bold text-brand">
+                          {post.category}
+                        </span>
+                        <p className="min-w-0 flex-1 truncate text-[13.5px] font-semibold">
+                          {post.title}
+                        </p>
+                        <ChevronRight size={15} className="shrink-0 text-faint" />
+                      </button>
+                    ))}
+                    {scrappedPosts.length > 5 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/community")}
+                        className="pt-1 text-center text-[12px] font-medium text-sub"
+                      >
+                        스크랩 {scrappedPosts.length}개 전체보기
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <EmptyState
+                    text="아직 스크랩한 글이 없어요"
+                    ctaLabel="커뮤니티 둘러보기"
+                    onClick={() => navigate("/community")}
+                  />
+                ))}
             </div>
-          )}
+          </div>
         </section>
 
-        {/* 7. 최근 본 업체 (비어있으면 섹션 자체를 숨김) */}
-        {recentlyViewedVendors.length > 0 && (
-          <section className="anim-rise mt-6" style={stagger(6)}>
-            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
-              <Clock size={16} className="text-brand" />
-              최근 본 업체
-            </h2>
-            <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5">
-              {recentlyViewedVendors.map((vendor) => (
-                <VendorTile
-                  key={vendor.id}
-                  vendor={vendor}
-                  onClick={() => goVendor(vendor)}
-                />
-              ))}
+        {/* 3-1. 상담 예약 내역 (있을 때만) */}
+        {consultations.length > 0 && (
+          <section className="anim-rise mt-6" style={stagger(3)}>
+            <div className="overflow-hidden rounded-2xl border border-line bg-white">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                <h2 className="flex items-center gap-1.5 text-[15px] font-bold">
+                  <CalendarCheck size={16} className="text-brand" />
+                  상담 예약 내역
+                </h2>
+                <span className="text-[12px] font-medium text-faint">
+                  {consultations.length}건
+                </span>
+              </div>
+              <div className="divide-y divide-line">
+                {consultations.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/vendors/${encodeURIComponent(c.category)}/${c.vendorId}`,
+                      )
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-black/[0.02]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="min-w-0 truncate text-[14px] font-bold">
+                          {c.vendorName}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                            c.status === "확정"
+                              ? "bg-success/10 text-success"
+                              : "bg-consult/10 text-consult"
+                          }`}
+                        >
+                          {c.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-[12px] text-sub">
+                        희망 시간: {c.slots.map(slotLabel).join(" · ")}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-faint">
+                        {c.category} · {shortDate(c.createdAt)} 신청
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="shrink-0 text-faint" />
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* 8. 등록한 업체 */}
-        <section className="anim-rise mt-6" style={stagger(7)}>
+        {/* 3-2. 결제 내역 (있을 때만) */}
+        {orders.length > 0 && (
+          <section className="anim-rise mt-6" style={stagger(4)}>
+            <div className="overflow-hidden rounded-2xl border border-line bg-white">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3">
+                <h2 className="flex items-center gap-1.5 text-[15px] font-bold">
+                  <CreditCard size={16} className="text-brand" />
+                  결제 내역
+                </h2>
+                <span className="text-[12px] font-medium text-faint">
+                  {orders.length}건
+                </span>
+              </div>
+              <div className="divide-y divide-line">
+                {orders.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/vendors/${encodeURIComponent(o.category)}/${o.vendorId}`,
+                      )
+                    }
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:bg-black/[0.02]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
+                          {o.productName}
+                        </span>
+                        <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-bold text-success">
+                          {o.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-[12px] text-sub">
+                        {o.vendorName}
+                        {o.optionNames.length > 0 &&
+                          ` · 옵션 ${o.optionNames.length}개`}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-[11px] text-faint">
+                          {shortDate(o.createdAt)} 결제
+                        </span>
+                        <span className="text-[14px] font-extrabold text-ink">
+                          {o.totalPrice.toLocaleString()}원
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 4. 등록한 업체 */}
+        <section className="anim-rise mt-6" style={stagger(5)}>
           <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
             <Building2 size={16} className="text-brand" />
             등록한 업체
-          </h2>
-          {registeredVendors.length > 0 ? (
-            <div className="flex flex-col gap-2.5">
-              {registeredVendors.map((it) => (
-                <button
-                  key={it.id}
-                  type="button"
-                  onClick={() => navigate(`/vendor-chat/${it.id}`)}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-faint">
-                      {it.category}
-                    </p>
-                    <p className="mt-0.5 truncate text-[14px] font-bold">
-                      {it.vendor?.vendorName}
-                    </p>
-                  </div>
-                  {it.vendor && <StatusBadge status={it.vendor.status} />}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-line bg-white p-5 text-center">
-              <p className="text-[13px] text-sub">
-                아직 등록한 업체가 없어요
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/checklist")}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-tint px-4 text-[13px] font-bold text-brand transition active:scale-95"
-              >
-                체크리스트에서 등록하기
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* 8-1. 상담 예약 내역 (있을 때만) */}
-        {consultations.length > 0 && (
-          <section className="anim-rise mt-6" style={stagger(7)}>
-            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
-              <CalendarCheck size={16} className="text-brand" />
-              상담 예약 내역
+            {registeredVendors.length > 0 && (
               <span className="text-[13px] font-medium text-faint">
-                {consultations.length}
-              </span>
-            </h2>
-            <div className="flex flex-col gap-2.5">
-              {consultations.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() =>
-                    navigate(`/vendors/${encodeURIComponent(c.category)}/${c.vendorId}`)
-                  }
-                  className="rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
-                      {c.vendorName}
-                    </span>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                        c.status === "확정"
-                          ? "bg-success/10 text-success"
-                          : "bg-consult/10 text-consult"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[12px] text-sub">
-                    희망 시간: {c.slots.map(slotLabel).join(" · ")}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-faint">
-                    {c.category} · {shortDate(c.createdAt)} 신청
-                  </p>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 8-2. 결제 내역 (있을 때만) */}
-        {orders.length > 0 && (
-          <section className="anim-rise mt-6" style={stagger(7)}>
-            <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
-              <CreditCard size={16} className="text-brand" />
-              결제 내역
-              <span className="text-[13px] font-medium text-faint">
-                {orders.length}
-              </span>
-            </h2>
-            <div className="flex flex-col gap-2.5">
-              {orders.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() =>
-                    navigate(`/vendors/${encodeURIComponent(o.category)}/${o.vendorId}`)
-                  }
-                  className="rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="min-w-0 flex-1 truncate text-[14px] font-bold">
-                      {o.productName}
-                    </span>
-                    <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-bold text-success">
-                      {o.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[12px] text-sub">
-                    {o.vendorName}
-                    {o.optionNames.length > 0 && ` · 옵션 ${o.optionNames.length}개`}
-                  </p>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-[11px] text-faint">
-                      {shortDate(o.createdAt)} 결제
-                    </span>
-                    <span className="text-[14px] font-extrabold text-ink">
-                      {o.totalPrice.toLocaleString()}원
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 9. 스크랩한 글 */}
-        <section className="anim-rise mt-6" style={stagger(8)}>
-          <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
-            <Bookmark size={16} className="text-brand" />
-            스크랩한 글
-            {scrappedPosts.length > 0 && (
-              <span className="text-[13px] font-medium text-faint">
-                {scrappedPosts.length}
+                {registeredVendors.length}
               </span>
             )}
           </h2>
-          {scrappedPosts.length > 0 ? (
+          {registeredVendors.length > 0 ? (
             <div className="flex flex-col gap-2.5">
-              {scrappedPosts.slice(0, 5).map((post) => (
-                <button
-                  key={post.id}
-                  type="button"
-                  onClick={() => navigate(`/community/${post.id}`)}
-                  className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
-                >
-                  <span className="shrink-0 rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-bold text-brand">
-                    {post.category}
-                  </span>
-                  <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">
-                    {post.title}
-                  </p>
-                  <ChevronRight size={15} className="shrink-0 text-faint" />
-                </button>
-              ))}
-              {scrappedPosts.length > 5 && (
-                <button
-                  type="button"
-                  onClick={() => navigate("/community")}
-                  className="text-center text-[12px] font-medium text-sub"
-                >
-                  스크랩 {scrappedPosts.length}개 전체보기
-                </button>
-              )}
+              {registeredVendors.map((it) => {
+                const Icon = it.category ? categoryIcon(it.category) : Building2;
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    onClick={() => navigate(`/vendor-chat/${it.id}`)}
+                    className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-tint text-brand">
+                      <Icon size={18} strokeWidth={1.9} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] font-semibold text-faint">
+                        {it.category}
+                      </p>
+                      <p className="mt-0.5 truncate text-[14px] font-bold">
+                        {it.vendor?.vendorName}
+                      </p>
+                    </div>
+                    {it.vendor && <StatusBadge status={it.vendor.status} />}
+                    <ChevronRight size={16} className="shrink-0 text-faint" />
+                  </button>
+                );
+              })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-line bg-white p-5 text-center">
-              <p className="text-[13px] text-sub">
-                아직 스크랩한 글이 없어요
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/community")}
-                className="mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-tint px-4 text-[13px] font-bold text-brand transition active:scale-95"
-              >
-                커뮤니티 둘러보기
-              </button>
-            </div>
+            <EmptyState
+              text="아직 등록한 업체가 없어요"
+              ctaLabel="체크리스트에서 등록하기"
+              onClick={() => navigate("/checklist")}
+              framed
+            />
           )}
         </section>
 
-        {/* 10. 내 커뮤니티 활동 */}
-        <section className="anim-rise mt-6" style={stagger(9)}>
+        {/* 5. 내 커뮤니티 활동 */}
+        <section className="anim-rise mt-6" style={stagger(6)}>
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-[16px] font-bold">
               <Users size={16} className="text-brand" />
               내 커뮤니티 활동
-              <span className="text-[13px] font-medium text-faint">
-                {myPosts.length}
-              </span>
+              {myPosts.length > 0 && (
+                <span className="text-[13px] font-medium text-faint">
+                  {myPosts.length}
+                </span>
+              )}
             </h2>
             <button
               type="button"
               onClick={() => navigate("/community")}
               className="flex items-center gap-0.5 text-[12px] font-medium text-sub"
             >
-              커뮤니티 더보기
+              더보기
               <ChevronRight size={14} />
             </button>
           </div>
@@ -548,14 +581,28 @@ export default function MyPage() {
                   key={post.id}
                   type="button"
                   onClick={() => navigate(`/community/${post.id}`)}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white p-3.5 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
+                  className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 text-left transition active:scale-[0.99] active:bg-black/[0.02]"
                 >
-                  <p className="min-w-0 flex-1 truncate text-[14px] font-semibold">
-                    {post.title}
-                  </p>
-                  <span className="shrink-0 text-[12px] text-faint">
-                    좋아요 {post.likeCount}
-                  </span>
+                  {post.imageUrls[0] ? (
+                    <img
+                      src={post.imageUrls[0]}
+                      alt=""
+                      className="h-12 w-12 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-field text-faint">
+                      <ImageIcon size={18} strokeWidth={1.7} />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-semibold">
+                      {post.title}
+                    </p>
+                    <p className="mt-0.5 text-[11.5px] text-faint">
+                      {post.category} · 좋아요 {post.likeCount}
+                    </p>
+                  </div>
+                  <ChevronRight size={15} className="shrink-0 text-faint" />
                 </button>
               ))}
             </div>
@@ -566,9 +613,12 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* 11. 설정 리스트 */}
-        <section className="anim-rise mt-6" style={stagger(10)}>
-          <h2 className="mb-3 text-[16px] font-bold">설정</h2>
+        {/* 6. 설정 리스트 */}
+        <section className="anim-rise mt-6" style={stagger(7)}>
+          <h2 className="mb-3 flex items-center gap-1.5 text-[16px] font-bold">
+            <Settings2 size={16} className="text-brand" />
+            설정
+          </h2>
           <div className="overflow-hidden rounded-2xl border border-line bg-white">
             <div className="flex items-center justify-between px-4 py-3.5">
               <span className="flex items-center gap-2.5 text-[14px] font-medium">
@@ -666,11 +716,50 @@ export default function MyPage() {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: number }) {
+// 히어로 카드 안의 다크 배경용 통계 셀
+function HeroStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[15px] font-extrabold text-ink">{value}</span>
-      <span className="text-[11px] text-faint">{label}</span>
+    <div className="flex flex-col items-center gap-0.5 px-1 text-center">
+      <span className="text-[15px] font-extrabold leading-none text-white">
+        {value}
+      </span>
+      <span className="mt-1 text-[10.5px] leading-tight text-white/50">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// 보관함 탭 공용 빈 상태. framed=true면 독립 섹션(흰 배경 위)에서 쓰는 테두리 버전
+function EmptyState({
+  text,
+  ctaLabel,
+  onClick,
+  framed = false,
+}: {
+  text: string;
+  ctaLabel: string;
+  onClick: () => void;
+  framed?: boolean;
+}) {
+  return (
+    <div
+      className={
+        framed
+          ? "rounded-2xl border border-line bg-white p-5 text-center"
+          : "rounded-xl bg-field p-5 text-center"
+      }
+    >
+      <p className="text-[13px] text-sub">{text}</p>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`mt-3 inline-flex h-9 items-center justify-center rounded-xl px-4 text-[13px] font-bold text-brand transition active:scale-95 ${
+          framed ? "bg-tint" : "bg-white ring-1 ring-line"
+        }`}
+      >
+        {ctaLabel}
+      </button>
     </div>
   );
 }

@@ -50,12 +50,17 @@ export default function CommunityPostDetail() {
   const { communityPosts, likedPostIds, toggleLike, scrappedPostIds, toggleScrap, addComment } =
     useApp();
   const [comment, setComment] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const post = communityPosts.find((p) => p.id === postId);
 
   useEffect(() => {
     if (!post) navigate("/community", { replace: true });
   }, [post, navigate]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [postId]);
 
   const relatedPosts = useMemo(() => {
     if (!post) return [];
@@ -77,6 +82,7 @@ export default function CommunityPostDetail() {
   const likeCount = post.likeCount + (liked ? 1 : 0);
   const scrapped = scrappedPostIds.includes(post.id);
   const scrapCount = post.scrapCount + (scrapped ? 1 : 0);
+  const heroImage = post.imageUrls[activeImageIndex] ?? post.imageUrls[0];
 
   const handleSend = () => {
     const text = comment.trim();
@@ -113,22 +119,40 @@ export default function CommunityPostDetail() {
           조회 {post.viewCount.toLocaleString()}
         </div>
 
-        <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
-          {post.body}
-        </p>
-
         {post.imageUrls.length > 0 && (
-          <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto">
-            {post.imageUrls.map((url) => (
+          <div className="mt-4">
+            <div className="w-full overflow-hidden rounded-2xl bg-field">
               <img
-                key={url}
-                src={url}
+                src={heroImage}
                 alt=""
-                className="h-[220px] w-[220px] shrink-0 rounded-2xl object-cover"
+                className="aspect-[4/5] w-full object-cover"
               />
-            ))}
+            </div>
+
+            {post.imageUrls.length > 1 && (
+              <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto">
+                {post.imageUrls.map((url, i) => (
+                  <button
+                    key={url + i}
+                    type="button"
+                    onClick={() => setActiveImageIndex(i)}
+                    className={`h-[110px] w-[110px] shrink-0 overflow-hidden rounded-xl transition ${
+                      i === activeImageIndex
+                        ? "ring-2 ring-brand ring-offset-2"
+                        : "opacity-70 active:opacity-100"
+                    }`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        <p className="mt-4 whitespace-pre-wrap text-[14px] leading-relaxed text-ink">
+          {post.body}
+        </p>
 
         {post.tags.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">

@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
+  ChevronRight,
   Coins,
+  Compass,
   ListChecks,
   MapPin,
   MessageCircle,
@@ -10,6 +12,7 @@ import {
   Search,
   SearchX,
   Sparkles,
+  Star,
   Tag,
   TrendingUp,
 } from "lucide-react";
@@ -18,10 +21,10 @@ import BottomNav from "../components/BottomNav";
 import FloatingChat from "../components/FloatingChat";
 import RegionChips from "../components/RegionChips";
 import VendorCard from "../components/VendorCard";
-import { categoryIcon } from "../components/VendorThumb";
+import VendorThumb, { categoryIcon } from "../components/VendorThumb";
 import { SERVICES_PROMO_AD } from "../data/ads";
-import { filterVendors, topRatedVendors } from "../data/vendors";
-import type { Region } from "../types";
+import { filterVendors, topRatedVendors, vendorsByCategory } from "../data/vendors";
+import type { Region, VendorCategory, VendorSummary } from "../types";
 import { VENDOR_CATEGORIES } from "../types";
 
 // 검색어 정규화 — 공백/대소문자 무시 contains 매칭에 사용
@@ -77,6 +80,14 @@ const MORE_SERVICES = [
   },
 ] as const;
 
+// 카테고리 하이라이트 — 핵심 카테고리를 대표 업체 이미지와 함께 소개(카테고리 자체를 매력적으로 보여주는 섹션)
+const HIGHLIGHT_CATEGORIES: { category: VendorCategory; blurb: string }[] = [
+  { category: "웨딩홀", blurb: "예식부터 피로연까지, 우리 하루를 담을 공간" },
+  { category: "스튜디오", blurb: "가장 자연스러운 우리 둘의 표정을 남기다" },
+  { category: "드레스", blurb: "당신에게 가장 잘 어울리는 한 벌을 찾다" },
+  { category: "헤어&메이크업", blurb: "본식 컨디션을 완성하는 마지막 손길" },
+];
+
 // 섹션 순차 등장 딜레이 (CSS 애니메이션 — rAF가 멈춰도 콘텐츠는 항상 보임)
 const stagger = (step: number) => ({ animationDelay: `${step * 60}ms` });
 
@@ -114,6 +125,20 @@ export default function Services() {
     [region],
   );
 
+  // 카테고리 타일마다 등록 업체 수를 함께 노출 — 실제 마켓플레이스 카탈로그처럼 신뢰감을 더함
+  const categoryCounts = useMemo(() => {
+    const map = new Map<VendorCategory, number>();
+    for (const cat of VENDOR_CATEGORIES) {
+      map.set(
+        cat,
+        region
+          ? filterVendors({ category: cat, region }).length
+          : vendorsByCategory(cat).length,
+      );
+    }
+    return map;
+  }, [region]);
+
   // 지역 인기 TOP — 지역 선택 시 그 지역 평점순, 미선택 시 전체 평점순(이번 주 인기 업체)
   const popularVendors = useMemo(
     () =>
@@ -132,6 +157,20 @@ export default function Services() {
       ),
     [region],
   );
+
+  // 카테고리 하이라이트 대표 업체 — 선택 지역에 있으면 그 지역 평점 1위, 없으면 전체 평점 1위로 대체
+  const highlightVendors = useMemo(() => {
+    const entries: { category: VendorCategory; blurb: string; vendor: VendorSummary }[] = [];
+    for (const { category, blurb } of HIGHLIGHT_CATEGORIES) {
+      const regional = region
+        ? filterVendors({ category, region, sort: "rating" })
+        : [];
+      const vendor =
+        regional[0] ?? filterVendors({ category, sort: "rating" })[0];
+      if (vendor) entries.push({ category, blurb, vendor });
+    }
+    return entries;
+  }, [region]);
 
   const goToCategory = (cat: string) => {
     const path = `/vendors/${encodeURIComponent(cat)}`;
@@ -165,7 +204,7 @@ export default function Services() {
         </div>
         <p className="mt-0.5 text-[12px] text-sub">
           {region
-            ? `${region} 정찰제 등록 업체 ${regionVendorCount}곳`
+            ? `${region}에서 정찰제로 가격을 공개한 업체 ${regionVendorCount}곳이 확인됐어요`
             : "지역을 선택하면 그 지역 업체만 모아 보여드려요"}
         </p>
         <div className="mt-3">
@@ -206,7 +245,7 @@ export default function Services() {
         <AdBanner ad={SERVICES_PROMO_AD} heightClass="h-[120px]" />
       </section>
 
-      {/* 카테고리별 업체 */}
+      {/* 카테고리별 업체 — 타일마다 등록 업체 수를 노출해 카탈로그 신뢰도를 강화 */}
       <section className="anim-rise mt-7 px-5" style={stagger(3)}>
         <h2 className="text-[16px] font-bold">카테고리별 업체</h2>
         <p className="mt-0.5 text-[12px] text-sub">
@@ -219,6 +258,7 @@ export default function Services() {
           <div className="mt-3.5 grid grid-cols-4 gap-x-2 gap-y-4">
             {filteredCategories.map((cat) => {
               const Icon = categoryIcon(cat);
+              const count = categoryCounts.get(cat) ?? 0;
               return (
                 <button
                   key={cat}
@@ -231,6 +271,9 @@ export default function Services() {
                   </span>
                   <span className="px-0.5 text-[11.5px] font-medium leading-tight text-ink">
                     {cat}
+                  </span>
+                  <span className="text-[10px] font-medium leading-tight text-faint">
+                    {count > 0 ? `${count}곳` : "준비중"}
                   </span>
                 </button>
               );
@@ -308,8 +351,69 @@ export default function Services() {
         </section>
       )}
 
+      {/* 카테고리 하이라이트 — 핵심 카테고리를 대표 업체와 함께 소개, 탭하면 카테고리 목록으로 이동 */}
+      {highlightVendors.length > 0 && (
+        <section className="anim-rise mt-7" style={stagger(6)}>
+          <div className="px-5">
+            <div className="flex items-center gap-1.5">
+              <Compass size={15} className="text-brand" />
+              <h2 className="text-[16px] font-bold">카테고리 하이라이트</h2>
+            </div>
+            <p className="mt-0.5 text-[12px] text-sub">
+              {region
+                ? `${region}에서 지금 가장 주목받는 카테고리 대표 업체예요`
+                : "지금 가장 주목받는 카테고리 대표 업체를 모았어요"}
+            </p>
+          </div>
+          <div className="mt-3.5 flex gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {highlightVendors.map(({ category, blurb, vendor }) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => goToCategory(category)}
+                className="flex w-[196px] shrink-0 flex-col overflow-hidden rounded-2xl border border-line bg-white text-left transition active:scale-[0.98]"
+              >
+                <VendorThumb
+                  category={category}
+                  thumbnailUrl={vendor.thumbnailUrl}
+                  className="h-[132px] w-full rounded-none"
+                  iconSize={34}
+                />
+                <div className="flex flex-1 flex-col p-3.5">
+                  <span className="w-fit rounded-md bg-tint px-1.5 py-0.5 text-[10px] font-semibold text-brand">
+                    {category}
+                  </span>
+                  <span className="mt-1.5 text-[14px] font-extrabold leading-tight">
+                    {vendor.name}
+                  </span>
+                  <span className="mt-1 line-clamp-2 text-[11px] leading-snug text-sub">
+                    {blurb}
+                  </span>
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-faint">
+                    <Star size={11} className="fill-[#FFC107] text-[#FFC107]" />
+                    <span className="font-semibold text-ink">
+                      {vendor.rating.toFixed(1)}
+                    </span>
+                    <span>· 후기 {vendor.reviewCount}</span>
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2.5">
+                    <span className="text-[12px] font-bold text-ink">
+                      {vendor.priceLabel}
+                    </span>
+                    <span className="flex items-center gap-0.5 text-[11px] font-semibold text-brand">
+                      전체보기
+                      <ChevronRight size={13} />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* 이런 것도 있어요 */}
-      <section className="anim-rise mt-7 px-5" style={stagger(6)}>
+      <section className="anim-rise mt-7 px-5" style={stagger(7)}>
         <h2 className="text-[16px] font-bold">이런 것도 있어요</h2>
         <div className="mt-3.5 flex flex-col gap-2.5">
           {MORE_SERVICES.map(({ label, sub, to, Icon }) => (
